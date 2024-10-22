@@ -2,7 +2,7 @@ name: Wallet CI
 
 on: 
   push:
-    branches: [ main ]
+  
   pull_request:
     branches: [ main ]
 
@@ -13,12 +13,12 @@ jobs:
 
     steps:
       - name: Check out the code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.8'  # Change to your desired Python version
+          python-version: '3.x'
 
       - name: Install dependencies
         run: |
