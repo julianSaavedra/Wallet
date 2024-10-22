@@ -1,2 +1,2 @@
 # Wallet
-Browse and inspect though expenses and incomes.
+Browse and inspect expenses and incomes.

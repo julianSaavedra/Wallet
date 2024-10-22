@@ -1,7 +1,7 @@
 from unittest import TestCase
 from collections import deque
 
-from model import Dollars, ExpensesSummary, Expense, ExpensesFromFileSource
+from src.model import Dollars, ExpensesSummary, Expense, ExpensesFromFileSource
 
 class ExpensesSummaryTest(TestCase):
     def testTotalExpenseFromSummaryWithNoSourceIsZeroDollars(self):
