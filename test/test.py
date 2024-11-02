@@ -91,27 +91,65 @@ class ExpensesFromFileSourceTest(TestCase):
         expenses = aSource.expenses()
         self.assertEqual(len(expenses),0)
     
+    def testNoIncomesAreImportedFromEmptyFile(self):
+        aFile = TestFile()
+        aSource = ExpensesFromFileSource.fromFile(aFile)
+        incomes = aSource.incomes()
+        self.assertEqual(len(incomes),0)
+    
     def testSingleExpenseOfTwoDollarsIsImportedFromFile(self):
         aFile = TestFile()
-        aFile.addLine('Date,Description,Debit,Credit\n')
-        aFile.addLine('09-27-2024,"Debit Card Purchase",2.00,\n')
+        aFile.addLine('Date,Description,Debit,Credit')
+        aFile.addLine('09-27-2024,"PurchaseA",2.00,')
         aSource = ExpensesFromFileSource.fromFile(aFile)
         expenses = aSource.expenses()
-        self.assertEqual(len(expenses), 1)
-        self.assertEqual(expenses[0].total(), Dollars.amount(2))
+        self.assertAllAndOnlyTotalsInDollars(expenses, [2])
     
     def testThreeExpensesOfTwoSixAndTenDollarsAreImportedFromFile(self):
         aFile = TestFile()
-        aFile.addLine('Date,Description,Debit,Credit\n')
-        aFile.addLine('09-27-2024,"Debit Card Purchase",2.00,\n')
-        aFile.addLine('09-27-2024,"Debit Card Purchase",6.00,\n')
-        aFile.addLine('09-27-2024,"Debit Card Purchase",10.00,\n')
+        aFile.addLine('Date,Description,Debit,Credit')
+        aFile.addLine('09-27-2024,"PurchaseA",2.00,')
+        aFile.addLine('09-27-2024,"PurchaseB",6.00,')
+        aFile.addLine('09-27-2024,"PurchaseC",10.00,')
         aSource = ExpensesFromFileSource.fromFile(aFile)
         expenses = aSource.expenses()
-        self.assertEqual(len(expenses), 3)
-        self.assertEqual(expenses[0].total(), Dollars.amount(2))
-        self.assertEqual(expenses[1].total(), Dollars.amount(6))
-        self.assertEqual(expenses[2].total(), Dollars.amount(10))
+        self.assertAllAndOnlyTotalsInDollars(expenses, [2, 6, 10])
+    
+    def testSingleIncomeOfSevenDollarsIsImportedFromFile(self):
+        aFile = TestFile()
+        aFile.addLine('Date,Description,Debit,Credit')
+        aFile.addLine('09-30-2024,"IncomeA",,7.85')
+        aSource = ExpensesFromFileSource.fromFile(aFile)
+        incomes = aSource.incomes()
+        self.assertAllAndOnlyTotalsInDollars(incomes, [7.85])
+    
+    def testThreeIncomesOfTenTwelveAndTwentyDollarsAreImportedFromFile(self):
+        aFile = TestFile()
+        aFile.addLine('Date,Description,Debit,Credit')
+        aFile.addLine('09-30-2024,"IncomeA",,10.00')
+        aFile.addLine('09-30-2024,"IncomeB",,12.00')
+        aFile.addLine('09-30-2024,"IncomeC",,20.00')
+        aSource = ExpensesFromFileSource.fromFile(aFile)
+        incomes = aSource.incomes()
+        self.assertAllAndOnlyTotalsInDollars(incomes, [10, 12, 20])
+    
+    def testTwoIncomesOfTwoAndFourDollarsAndTwoExpensesOfThreeAndFiveAreImportedFromFile(self):
+        aFile = TestFile()
+        aFile.addLine('Date,Description,Debit,Credit')
+        aFile.addLine('09-30-2024,"IncomeA",,2.00')
+        aFile.addLine('09-27-2024,"PurchaseA",3.00,')        
+        aFile.addLine('09-30-2024,"IncomeB",,4.00')
+        aFile.addLine('09-27-2024,"PurchaseB",5.00,')
+        aSource = ExpensesFromFileSource.fromFile(aFile)
+        expenses = aSource.expenses()
+        incomes = aSource.incomes()
+        self.assertAllAndOnlyTotalsInDollars(expenses, [3, 5])
+        self.assertAllAndOnlyTotalsInDollars(incomes, [2, 4])
+
+    def assertAllAndOnlyTotalsInDollars(self, activities, expectedDollarAmounts):
+        self.assertEqual(len(activities), len(activities))
+        for activity , expectedDollarAmount in zip(activities, expectedDollarAmounts):
+            self.assertEqual(activity.total(), Dollars.amount(expectedDollarAmount))
         
 
 class DollarsTests(TestCase):
