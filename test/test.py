@@ -3,7 +3,7 @@ from collections import deque
 
 from src.model import Dollars, ExpensesAndIncomeSummary, Expense, Income, ExpensesAndIncomesFromFileSource, StatementActivityLineParser
 
-class ExpensesSummaryTest(TestCase):
+class ExpensesAndIncomeSummaryTest(TestCase):
     def testTotalExpenseFromSummaryWithNoSourceIsZeroDollars(self):
         summary = ExpensesAndIncomeSummary.fromSources([])
         totalExpenses = summary.totalExpenses()
@@ -129,7 +129,7 @@ class ExpensesSummaryTest(TestCase):
         return aSource
 
 
-class ExpensesFromFileSourceTest(TestCase):
+class ExpensesAndIncomesFromFileSourceTest(TestCase):
     def testNoExpensesAreImportedFromEmptyFile(self):
         aFile = TestFile()
         parser = StatementActivityLineParser.commaSeparatedValues()
