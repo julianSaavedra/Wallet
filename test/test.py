@@ -1,7 +1,7 @@
 from unittest import TestCase
 from collections import deque
 
-from src.model import Dollars, ExpensesSummary, Expense, ExpensesFromFileSource
+from src.model import Dollars, ExpensesSummary, Expense, ExpensesFromFileSource, StatementActivityLineParser
 
 class ExpensesSummaryTest(TestCase):
     def testTotalExpenseFromSummaryWithNoSourceIsZeroDollars(self):
@@ -99,8 +99,8 @@ class ExpensesFromFileSourceTest(TestCase):
     
     def testSingleExpenseOfTwoDollarsIsImportedFromFile(self):
         aFile = TestFile()
-        aFile.addLine('Date,Description,Debit,Credit')
-        aFile.addLine('09-27-2024,"PurchaseA",2.00,')
+        aFile.addLine('Date,Description,Debit,Credit\n')
+        aFile.addLine('09-27-2024,"PurchaseA",2.00,\n')
         aSource = ExpensesFromFileSource.fromFile(aFile)
         expenses = aSource.expenses()
         self.assertAllAndOnlyTotalsInDollars(expenses, [2])
@@ -151,6 +151,39 @@ class ExpensesFromFileSourceTest(TestCase):
         for activity , expectedDollarAmount in zip(activities, expectedDollarAmounts):
             self.assertEqual(activity.total(), Dollars.amount(expectedDollarAmount))
         
+
+class StatementActivityLineParserTest(TestCase):
+    def testLineWithFourCommaSeparatedValuesIsParsedIntoAListWithThoseFourValues(self):
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        parsedLine = parser.parse('A,$,Hello,1.0')
+        self.assertEqual(parsedLine, ['A', '$', 'Hello', '1.0'])
+
+    def testLineWithNoValueAfterTheFirstCommaIsParsedIntoAListWithAnEmptyStringsInSecondPlace(self):
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        parsedLine = parser.parse('A,,Hello,1.0')
+        self.assertEqual(parsedLine, ['A', '', 'Hello', '1.0'])
+
+    def testLineWithNoValueAfterLastCommaIsParsedIntoAListWithAnEmptyStringAtTheEnd(self):
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        parsedLine = parser.parse('A,$,Hello,')
+        self.assertEqual(parsedLine, ['A', '$', 'Hello', ''])
+    
+    def testLineWithNoValueBeforeFirstCommaIsParsedIntoAListWithAnEmptyStringAtTheFirstPlace(self):
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        parsedLine = parser.parse(',$,Hello,1.0')
+        self.assertEqual(parsedLine, ['', '$', 'Hello', '1.0'])
+    
+    def testWhiteSpacesAtTheStartOrEndOfCommaSeparatedValuesAreIgnored(self):
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        parsedLine = parser.parse('A,$ , Hello World,1.0\n')
+        self.assertEqual(parsedLine, ['A', '$', 'Hello World', '1.0'])
+    
+    def testLinesSectionWithCommaWithinQuotesIsParsedAsASingleValue(self):
+        parser = StatementActivityLineParser.commaSeparatedValues(boundingCharacter='"')
+        parsedLine = parser.parse('123,"NY,USA",456')
+        self.assertEqual(parsedLine, ['123', 'NY,USA', '456'])
+    
+
 
 class DollarsTests(TestCase):
     def testEquals(self):

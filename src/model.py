@@ -50,6 +50,7 @@ class ExpensesFromFileSource():
     
     def __init__(self, aFile):
         self._file = aFile
+        self._parser = StatementActivityLineParser()
         self._loadedExpenses = []
         self._loadedIncomes = []
 
@@ -66,15 +67,15 @@ class ExpensesFromFileSource():
         incomes = []
         lines = self._file.readlines()
         if lines:
-            header = lines[0].split(',')
+            header = self._parser.parse(lines[0])
             indexOfExpense = header.index('Debit')
             indexOfIncome = header.index('Credit')
             for line in lines[1:]:
-                expenseAmount = line.split(',')[indexOfExpense]
+                expenseAmount = self._parser.parse(line)[indexOfExpense]
                 if expenseAmount:
                     anExpense = Expense.withTotal(Dollars.amount(float(expenseAmount)))
                     expenses.append(anExpense)
-                incomeAmount = line.split(',')[indexOfIncome]
+                incomeAmount = self._parser.parse(line)[indexOfIncome]
                 if incomeAmount:
                     anIncome = Income.withTotal(Dollars.amount(float(incomeAmount)))
                     incomes.append(anIncome)
@@ -103,3 +104,28 @@ class Income():
     
     def total(self):
         return self._total
+
+
+class StatementActivityLineParser():
+
+    @classmethod
+    def commaSeparatedValues(cls,boundingCharacter = None):
+        return cls(',', boundingCharacter)
+    
+    def __init__(self, separator, boundingCharacter):
+        self._separator = separator
+        self._boundingCharacter = boundingCharacter
+
+    def parse(self, line):
+        parsedValues = []
+        currentValue = ''
+        ignoreSeparator = False
+        for character in line:
+            if character == self._separator and not ignoreSeparator:
+                parsedValues.append(currentValue)
+                currentValue = ''
+            elif character == self._boundingCharacter:
+                ignoreSeparator = not ignoreSeparator
+            else: currentValue = currentValue + character
+        parsedValues.append(currentValue)
+        return [ parsedValue.strip() for parsedValue in parsedValues ]
