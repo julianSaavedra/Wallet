@@ -1,24 +1,24 @@
 from unittest import TestCase
 from collections import deque
 
-from src.model import Dollars, ExpensesSummary, Expense, ExpensesFromFileSource, StatementActivityLineParser
+from src.model import Dollars, ExpensesAndIncomeSummary, Expense, Income, ExpensesAndIncomesFromFileSource, StatementActivityLineParser
 
 class ExpensesSummaryTest(TestCase):
     def testTotalExpenseFromSummaryWithNoSourceIsZeroDollars(self):
-        summary = ExpensesSummary.fromSources([])
+        summary = ExpensesAndIncomeSummary.fromSources([])
         totalExpenses = summary.totalExpenses()
         self.assertEqual(totalExpenses,self.zeroDollars())
     
     def testTotalExpenseFromSummaryWithSingleSourceWithNoExpensesIsZeroDollars(self):
-        aSource = LoadedExpensesSource()
-        summary = ExpensesSummary.fromSources([aSource])
+        aSource = LoadedExpensesAndIncomesSource()
+        summary = ExpensesAndIncomeSummary.fromSources([aSource])
         totalExpenses = summary.totalExpenses()
         self.assertEqual(totalExpenses, self.zeroDollars())
     
     def testTotalExpenseFromSummaryWithSingleSourceWithSingleExpensesIsTenDollars(self):
         tenDollars = self.dollars(10)
         aSource = self.sourceWithSingleExpense(tenDollars)
-        summary = ExpensesSummary.fromSources([aSource])
+        summary = ExpensesAndIncomeSummary.fromSources([aSource])
         totalExpenses = summary.totalExpenses()
         self.assertEqual(totalExpenses, tenDollars)
     
@@ -26,7 +26,7 @@ class ExpensesSummaryTest(TestCase):
         tenDollars = self.dollars(10)
         twoDollars = self.dollars(2)
         aSource = self.sourceWithExpenses([tenDollars, twoDollars])
-        summary = ExpensesSummary.fromSources([aSource])
+        summary = ExpensesAndIncomeSummary.fromSources([aSource])
         totalExpenses = summary.totalExpenses()
         self.assertEqual(totalExpenses, self.dollars(12))
     
@@ -35,7 +35,7 @@ class ExpensesSummaryTest(TestCase):
         aSource = self.sourceWithSingleExpense(eightDollars)
         nineDollars = self.dollars(9)
         anotherSource = self.sourceWithSingleExpense(nineDollars)
-        summary = ExpensesSummary.fromSources([aSource, anotherSource])
+        summary = ExpensesAndIncomeSummary.fromSources([aSource, anotherSource])
         totalExpenses = summary.totalExpenses()
         self.assertEqual(totalExpenses, self.dollars(17))
     
@@ -46,7 +46,7 @@ class ExpensesSummaryTest(TestCase):
         eightDollars = self.dollars(8)
         nineDollars = self.dollars(9)
         anotherSource = self.sourceWithExpenses([nineDollars, eightDollars])
-        summary = ExpensesSummary.fromSources([aSource, anotherSource])
+        summary = ExpensesAndIncomeSummary.fromSources([aSource, anotherSource])
         totalExpenses = summary.totalExpenses()
         self.assertEqual(totalExpenses, self.dollars(29))
     
@@ -63,9 +63,44 @@ class ExpensesSummaryTest(TestCase):
         eightHundredDollars = self.dollars(800)
         nineHundredDollars = self.dollars(900)
         thirdSource = self.sourceWithExpenses([sevenHundredDollar, eightHundredDollars, nineHundredDollars])
-        summary = ExpensesSummary.fromSources([firstSource, secondSource, thirdSource])
+        summary = ExpensesAndIncomeSummary.fromSources([firstSource, secondSource, thirdSource])
         totalExpenses = summary.totalExpenses()
         self.assertEqual(totalExpenses, self.dollars(2556))
+
+    def testTotalIncomeFromSummaryWithNoSourceIsZeroDollars(self):
+        summary = ExpensesAndIncomeSummary.fromSources([])
+        totalIncome = summary.totalIncome()
+        self.assertEqual(totalIncome,self.zeroDollars())
+
+    def testTotalIncomeFromSummaryWithSingleSourceWithNoIncomesIsZeroDollars(self):
+        aSource = LoadedExpensesAndIncomesSource()
+        summary = ExpensesAndIncomeSummary.fromSources([aSource])
+        totalIncome = summary.totalIncome()
+        self.assertEqual(totalIncome, self.zeroDollars())
+
+    def testTotalIncomeFromSummaryWithSingleSourceWithSingleIncomeIsFiftyDollars(self):
+        fiftyDollars = self.dollars(50)
+        aSource = self.sourceWithSingleIncome(fiftyDollars)
+        summary = ExpensesAndIncomeSummary.fromSources([aSource])
+        totalIncome = summary.totalIncome()
+        self.assertEqual(totalIncome, fiftyDollars)
+
+    def testTotalIncomeFromSummaryWithThreeSourcesWithThreeIncomesEachIsThirtyNineDollars(self):
+        oneDollar = self.dollars(1)
+        twoDollars = self.dollars(2)
+        threeDollars = self.dollars(3)
+        firstSource = self.sourceWithIncomes([oneDollar, twoDollars, threeDollars])
+        fortyDollar = self.dollars(40)
+        fiftyDollars = self.dollars(50)
+        sixtyDollars = self.dollars(60)
+        secondSource = self.sourceWithIncomes([fortyDollar, fiftyDollars, sixtyDollars])
+        sevenHundredDollar = self.dollars(700)
+        eightHundredDollars = self.dollars(800)
+        nineHundredDollars = self.dollars(900)
+        thirdSource = self.sourceWithIncomes([sevenHundredDollar, eightHundredDollars, nineHundredDollars])
+        summary = ExpensesAndIncomeSummary.fromSources([firstSource, secondSource, thirdSource])
+        totalIncome = summary.totalIncome()
+        self.assertEqual(totalIncome, self.dollars(2556))
 
     def zeroDollars(self):
         return Dollars.zero()
@@ -75,25 +110,37 @@ class ExpensesSummaryTest(TestCase):
     
     def sourceWithSingleExpense(self, anAmount):
         return self.sourceWithExpenses([anAmount])
+    
+    def sourceWithSingleIncome(self, anAmount):
+        return self.sourceWithIncomes([anAmount])
 
     def sourceWithExpenses(self, amounts):
-        aSource = LoadedExpensesSource()
+        aSource = LoadedExpensesAndIncomesSource()
         for anAmount in amounts:
             anExpense = Expense.withTotal(anAmount)
             aSource.addExpense(anExpense)
+        return aSource
+    
+    def sourceWithIncomes(self, amounts):
+        aSource = LoadedExpensesAndIncomesSource()
+        for anAmount in amounts:
+            anExpense = Income.withTotal(anAmount)
+            aSource.addIncome(anExpense)
         return aSource
 
 
 class ExpensesFromFileSourceTest(TestCase):
     def testNoExpensesAreImportedFromEmptyFile(self):
         aFile = TestFile()
-        aSource = ExpensesFromFileSource.fromFile(aFile)
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        aSource = ExpensesAndIncomesFromFileSource.fromFile(aFile, parser)
         expenses = aSource.expenses()
         self.assertEqual(len(expenses),0)
     
     def testNoIncomesAreImportedFromEmptyFile(self):
         aFile = TestFile()
-        aSource = ExpensesFromFileSource.fromFile(aFile)
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        aSource = ExpensesAndIncomesFromFileSource.fromFile(aFile, parser)
         incomes = aSource.incomes()
         self.assertEqual(len(incomes),0)
     
@@ -101,7 +148,8 @@ class ExpensesFromFileSourceTest(TestCase):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit\n')
         aFile.addLine('09-27-2024,"PurchaseA",2.00,\n')
-        aSource = ExpensesFromFileSource.fromFile(aFile)
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        aSource = ExpensesAndIncomesFromFileSource.fromFile(aFile, parser)
         expenses = aSource.expenses()
         self.assertAllAndOnlyTotalsInDollars(expenses, [2])
     
@@ -111,7 +159,8 @@ class ExpensesFromFileSourceTest(TestCase):
         aFile.addLine('09-27-2024,"PurchaseA",2.00,')
         aFile.addLine('09-27-2024,"PurchaseB",6.00,')
         aFile.addLine('09-27-2024,"PurchaseC",10.00,')
-        aSource = ExpensesFromFileSource.fromFile(aFile)
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        aSource = ExpensesAndIncomesFromFileSource.fromFile(aFile, parser)
         expenses = aSource.expenses()
         self.assertAllAndOnlyTotalsInDollars(expenses, [2, 6, 10])
     
@@ -119,7 +168,8 @@ class ExpensesFromFileSourceTest(TestCase):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit')
         aFile.addLine('09-30-2024,"IncomeA",,7.85')
-        aSource = ExpensesFromFileSource.fromFile(aFile)
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        aSource = ExpensesAndIncomesFromFileSource.fromFile(aFile, parser)
         incomes = aSource.incomes()
         self.assertAllAndOnlyTotalsInDollars(incomes, [7.85])
     
@@ -129,7 +179,8 @@ class ExpensesFromFileSourceTest(TestCase):
         aFile.addLine('09-30-2024,"IncomeA",,10.00')
         aFile.addLine('09-30-2024,"IncomeB",,12.00')
         aFile.addLine('09-30-2024,"IncomeC",,20.00')
-        aSource = ExpensesFromFileSource.fromFile(aFile)
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        aSource = ExpensesAndIncomesFromFileSource.fromFile(aFile, parser)
         incomes = aSource.incomes()
         self.assertAllAndOnlyTotalsInDollars(incomes, [10, 12, 20])
     
@@ -140,7 +191,8 @@ class ExpensesFromFileSourceTest(TestCase):
         aFile.addLine('09-27-2024,"PurchaseA",3.00,')        
         aFile.addLine('09-30-2024,"IncomeB",,4.00')
         aFile.addLine('09-27-2024,"PurchaseB",5.00,')
-        aSource = ExpensesFromFileSource.fromFile(aFile)
+        parser = StatementActivityLineParser.commaSeparatedValues()
+        aSource = ExpensesAndIncomesFromFileSource.fromFile(aFile, parser)
         expenses = aSource.expenses()
         incomes = aSource.incomes()
         self.assertAllAndOnlyTotalsInDollars(expenses, [3, 5])
@@ -213,15 +265,22 @@ class DollarsTests(TestCase):
         self.assertEqual(twoDollars + fiveDollars, sevenDollars)
     
 
-class LoadedExpensesSource():
+class LoadedExpensesAndIncomesSource():
     def __init__(self):
         self._expenses = []
+        self._incomes = []
 
     def addExpense(self, anExpense):
         self._expenses.append(anExpense)
     
+    def addIncome(self, anIncome):
+        self._incomes.append(anIncome)
+    
     def expenses(self):
         return self._expenses
+    
+    def incomes(self):
+        return self._incomes
 
 class TestFile():
     def __init__(self):

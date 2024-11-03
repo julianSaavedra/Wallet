@@ -23,7 +23,7 @@ class Dollars():
     def __add__(self, value):
         return Dollars.amount(self._amount + value._amount)
 
-class ExpensesSummary():
+class ExpensesAndIncomeSummary():
     @classmethod
     def fromSources(cls, sources=[]):
         return cls(sources)
@@ -32,10 +32,19 @@ class ExpensesSummary():
         self._sources = sources 
     
     def totalExpenses(self):
-        return self.sum(self._sources, lambda aSource: self.totalExpensesFromSource(aSource))
+        return self.sumFromSources(lambda aSource: self.totalExpensesFromSource(aSource))
   
+    def totalIncome(self):
+        return self.sumFromSources(lambda aSource: self.totalIncomeFromSource(aSource))
+    
+    def sumFromSources(self, summandsExtractor):
+        return self.sum(self._sources, summandsExtractor)
+
     def totalExpensesFromSource(self, aSource):
         return self.sum(aSource.expenses(), lambda anExpense: anExpense.total())
+    
+    def totalIncomeFromSource(self, aSource):
+        return self.sum(aSource.incomes(), lambda anIncome: anIncome.total())
 
     def sum(self, collection, summandsExtractor):
         accumulator = Dollars.zero()
@@ -43,14 +52,14 @@ class ExpensesSummary():
             accumulator = accumulator + summandsExtractor(anElement)
         return accumulator
 
-class ExpensesFromFileSource():
+class ExpensesAndIncomesFromFileSource():
     @classmethod
-    def fromFile(cls, aFile):
-        return cls(aFile)
+    def fromFile(cls, file, activityLineParser):
+        return cls(file, activityLineParser)
     
-    def __init__(self, aFile):
-        self._file = aFile
-        self._parser = StatementActivityLineParser()
+    def __init__(self, file, activityLineParser):
+        self._file = file
+        self._activityLineParser = activityLineParser
         self._loadedExpenses = []
         self._loadedIncomes = []
 
@@ -67,15 +76,15 @@ class ExpensesFromFileSource():
         incomes = []
         lines = self._file.readlines()
         if lines:
-            header = self._parser.parse(lines[0])
+            header = self._activityLineParser.parse(lines[0])
             indexOfExpense = header.index('Debit')
             indexOfIncome = header.index('Credit')
             for line in lines[1:]:
-                expenseAmount = self._parser.parse(line)[indexOfExpense]
+                expenseAmount = self._activityLineParser.parse(line)[indexOfExpense]
                 if expenseAmount:
                     anExpense = Expense.withTotal(Dollars.amount(float(expenseAmount)))
                     expenses.append(anExpense)
-                incomeAmount = self._parser.parse(line)[indexOfIncome]
+                incomeAmount = self._activityLineParser.parse(line)[indexOfIncome]
                 if incomeAmount:
                     anIncome = Income.withTotal(Dollars.amount(float(incomeAmount)))
                     incomes.append(anIncome)
