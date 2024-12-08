@@ -18,10 +18,15 @@ class Dollars():
         return hash((self._amount, type(self)))
     
     def __str__(self):
-        return str(self._amount) + ' ' + 'USD'
+        amountString = '{0:.2f}'.format(self._amount)
+        return amountString + ' ' + 'USD'
     
     def __add__(self, value):
         return Dollars.amount(self._amount + value._amount)
+    
+    def __sub__(self, value):
+        return Dollars.amount(self._amount - value._amount)
+
 
 class ExpensesAndIncomeSummary():
     @classmethod

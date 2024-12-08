@@ -254,15 +254,23 @@ class DollarsTests(TestCase):
     
     def testStringRepresentation(self):
         zeroDollars = Dollars.zero()
-        self.assertEqual(str(zeroDollars), '0 USD')
+        self.assertEqual(str(zeroDollars), '0.00 USD')
         twoDollars = Dollars.amount(2)
-        self.assertEqual(str(twoDollars), '2 USD')
+        self.assertEqual(str(twoDollars), '2.00 USD')
+        oneDollarAndAThird = Dollars.amount(1 + 1/3)
+        self.assertEqual(str(oneDollarAndAThird), '1.33 USD')
     
     def testTwoDollarsPlusFiveDollarsEqualsSevenDollars(self):
         twoDollars = Dollars.amount(2)
         fiveDollars = Dollars.amount(5)
         sevenDollars = Dollars.amount(7)
         self.assertEqual(twoDollars + fiveDollars, sevenDollars)
+    
+    def testTwentyDollarsMinusFourteenDollarsEqualsSixDollars(self):
+        twentyDollars = Dollars.amount(20)
+        fourteenDollars = Dollars.amount(14)
+        sixDollars = Dollars.amount(6)
+        self.assertEqual(twentyDollars - fourteenDollars, sixDollars)
     
 
 class LoadedExpensesAndIncomesSource():
