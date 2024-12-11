@@ -83,16 +83,14 @@ class ExpensesAndIncomesFromFileSource():
         lines = self._file.readlines()
         if lines:
             header = self._activityLineParser.parse(lines[0])
+            recordToActivityTransformation = StatementFileRecordToActivityTransformation()
             for line in lines[1:]:
                 lineRecord = self._activityLineParser.parse(line)
-                expenseAmount = self._spec.expenseAmountFromLine(header, lineRecord)
-                if expenseAmount:
-                    anExpense = Expense.withTotal(Dollars.amount(expenseAmount))
-                    expenses.append(anExpense)
-                incomeAmount = self._spec.incomeAmountFromLine(header, lineRecord)
-                if incomeAmount:
-                    anIncome = Income.withTotal(Dollars.amount(incomeAmount))
-                    incomes.append(anIncome)
+                activity = recordToActivityTransformation.activityFromRecord(header, self._spec, lineRecord)
+                if type(activity) is Expense:
+                    expenses.append(activity)
+                else:
+                    incomes.append(activity)
         self._loadedExpenses = expenses
         self._loadedIncomes = incomes
 
@@ -119,6 +117,17 @@ class Income():
     def total(self):
         return self._total
 
+class StatementFileRecordToActivityTransformation():
+
+    def activityFromRecord(self, header, spec, lineRecord):
+        expenseAmount = spec.expenseAmountFromLine(header, lineRecord)
+        if expenseAmount:
+            return Expense.withTotal(Dollars.amount(expenseAmount))
+        incomeAmount = spec.incomeAmountFromLine(header, lineRecord)
+        if incomeAmount:
+            return Income.withTotal(Dollars.amount(incomeAmount))
+    
+
 class SingleAmountColumnStatementActivityFileSpecification:
     
     @classmethod
@@ -130,15 +139,16 @@ class SingleAmountColumnStatementActivityFileSpecification:
     
     def expenseAmountFromLine(self, header, lineRecord):
         amount = self._amountAtColumn(header, lineRecord, self._amountColumn)
-        return amount if amount is not None and amount > 0 else None
+        return amount if amount > 0 else 0
 
     def incomeAmountFromLine(self, header, lineRecord):
         amount = self._amountAtColumn(header, lineRecord, self._amountColumn)
-        return abs(amount) if amount is not None and amount < 0 else None
+        return abs(amount) if amount < 0 else 0
     
     def _amountAtColumn(self, header, lineRecord, columnName):
         amountIndex = header.index(columnName)
-        return float(lineRecord[amountIndex])
+        amount = lineRecord[amountIndex]
+        return float(amount) if amount else 0
 
 class TwoAmountColumnStatementActivityFileSpecification:
 
@@ -151,14 +161,15 @@ class TwoAmountColumnStatementActivityFileSpecification:
         self._incomeColumn = incomeColumn
     
     def expenseAmountFromLine(self, header, lineRecord):
-        expenseIndex = header.index(self._expenseColumn)
-        expenseAmount = lineRecord[expenseIndex]
-        return float(expenseAmount) if expenseAmount else None
+        return self._amountAtColumn(header, lineRecord, self._expenseColumn)
 
     def incomeAmountFromLine(self, header, lineRecord):
-        incomeIndex = header.index(self._incomeColumn)
-        incomeAmount = lineRecord[incomeIndex]
-        return float(incomeAmount) if incomeAmount else None
+        return self._amountAtColumn(header, lineRecord, self._incomeColumn)
+    
+    def _amountAtColumn(self, header, lineRecord, columnName):
+        amountIndex = header.index(columnName)
+        amount = lineRecord[amountIndex]
+        return float(amount) if amount else 0
 
 
 class StatementActivityLineParser():
