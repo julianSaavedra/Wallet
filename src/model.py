@@ -28,7 +28,7 @@ class Dollars():
         return Dollars.amount(self._amount - value._amount)
 
 
-class ExpensesAndIncomeSummary():
+class AccountStatement():
     @classmethod
     def fromSources(cls, sources=[]):
         return cls(sources)
@@ -42,6 +42,15 @@ class ExpensesAndIncomeSummary():
     def totalIncome(self):
         return self.sumFromSources(lambda aSource: self.totalIncomeFromSource(aSource))
     
+    def activityAggregationBasedOnSpec(self, aggregationSpec):
+        return aggregationSpec.aggregatedResultsFromActivities(self.allActivities())
+    
+    def allActivities(self):
+        activities = []
+        for aSource in self._sources:
+            activities = activities + aSource.expenses() + aSource.incomes()
+        return activities
+
     def sumFromSources(self, summandsExtractor):
         return self.sum(self._sources, summandsExtractor)
 
@@ -56,6 +65,7 @@ class ExpensesAndIncomeSummary():
         for anElement in collection:
             accumulator = accumulator + summandsExtractor(anElement)
         return accumulator
+
 
 class ExpensesAndIncomesFromFileSource():
     @classmethod
@@ -97,7 +107,27 @@ class ExpensesAndIncomesFromFileSource():
 
 class Expense():
     @classmethod
-    def withTotal(cls,total):
+    def withTotal(cls, total):
+        return cls.withDescriptionAndTotal('No Description', total)
+    
+    @classmethod
+    def withDescriptionAndTotal(cls,description, total):
+        return cls(description, total)
+
+    def __init__(self, description, total):
+        self._description = description
+        self._total = total
+    
+    def total(self):
+        return self._total
+    
+    def description(self):
+        return self._description
+
+
+class Income():
+    @classmethod
+    def withTotal(cls, total):
         return cls(total)
     
     def __init__(self, total):
@@ -106,16 +136,6 @@ class Expense():
     def total(self):
         return self._total
 
-class Income():
-    @classmethod
-    def withTotal(cls,total):
-        return cls(total)
-    
-    def __init__(self,total):
-        self._total = total
-    
-    def total(self):
-        return self._total
 
 class StatementFileRecordToActivityTransformation():
 
@@ -149,6 +169,7 @@ class SingleAmountColumnStatementActivityFileSpecification:
         amountIndex = header.index(columnName)
         amount = lineRecord[amountIndex]
         return float(amount) if amount else 0
+
 
 class TwoAmountColumnStatementActivityFileSpecification:
 
