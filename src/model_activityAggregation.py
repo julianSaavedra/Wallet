@@ -40,7 +40,7 @@ class ActivityAggregationSpec:
         for category, activities in aggregatedActivities.items():
             totalForCategory = Dollars.zero()
             for anActivity in activities: totalForCategory = totalForCategory + anActivity.total()
-            totalsAggregation[category] = Expense.withDescriptionAndTotal('Total', totalForCategory)
+            totalsAggregation[category] = Expense.expenseWithTotal(totalForCategory)
         return totalsAggregation
 
 

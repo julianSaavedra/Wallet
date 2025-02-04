@@ -35,7 +35,7 @@ class StatementActivityClassificationTest(TestCase):
 
     def testSingleExpenseIsAggregatedToUnclassifiedWhenAnEmptyAggregationSpecIsUsed(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('Description123', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('Description123', twoDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         summary = AccountStatement.fromSources([aSource])
@@ -45,7 +45,7 @@ class StatementActivityClassificationTest(TestCase):
 
     def testUnclassifiedCategoryIsTheOnlyCategoryWhenThereIsActivityAndAnEmptyAggregationSpecIsUsed(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('Description123', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('Description123', twoDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         summary = AccountStatement.fromSources([aSource])
@@ -56,7 +56,7 @@ class StatementActivityClassificationTest(TestCase):
 
     def testSingleExpenseWhichDescriptionIncludingMarketABCIsClassifiedIntoGroceriesWithTotalOfTwoDollars(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         summary = AccountStatement.fromSources([aSource])
@@ -68,7 +68,7 @@ class StatementActivityClassificationTest(TestCase):
 
     def testSingleExpenseIsAggregatedIntoGroceriesAndNotIntoServicesCategory(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         summary = AccountStatement.fromSources([aSource])
@@ -82,7 +82,7 @@ class StatementActivityClassificationTest(TestCase):
 
     def testSingleExpenseIsAggregatedIntoASingleGroceriesCategoryEvenIfMoreThanOneCategoriesWouldMatch(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         summary = AccountStatement.fromSources([aSource])
@@ -97,7 +97,7 @@ class StatementActivityClassificationTest(TestCase):
 
     def testSingleExpenseIsAggregatedToUnclassifiedWhenSingleGroceryCategoryDoesNotMatch(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('Description123', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('Description123', twoDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         summary = AccountStatement.fromSources([aSource])
@@ -110,7 +110,7 @@ class StatementActivityClassificationTest(TestCase):
 
     def testUnclassifiedCategoryIsNotIncludedWhenSingleExpenseIsClassifiedIntoGroceries(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         summary = AccountStatement.fromSources([aSource])
@@ -123,9 +123,9 @@ class StatementActivityClassificationTest(TestCase):
 
     def testTwoExpensesAreAggregatedIntoUnclassifiedWithTotalOfFiveDollarsWhenEmptyAggregationSpecIsGiven(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
         threeDollars = Dollars.amount(3)
-        annotherExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', threeDollars)
+        annotherExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', threeDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         aSource.addExpense(annotherExpense)
@@ -137,9 +137,9 @@ class StatementActivityClassificationTest(TestCase):
 
     def testTwoExpensesWhichDescriptionsIncludeMarketABCAreClassifiedIntoGroceriesWithTotalOfFiveDollars(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
         threeDollars = Dollars.amount(3)
-        annotherExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', threeDollars)
+        annotherExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', threeDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         aSource.addExpense(annotherExpense)
@@ -153,9 +153,9 @@ class StatementActivityClassificationTest(TestCase):
 
     def testOneTwoDollarsExpenseAggregatesIntoGroceriesAndAnotherFiveDollarsExpenseAggregatesToUnclassified(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
         threeDollars = Dollars.amount(3)
-        annotherExpense = Expense.withDescriptionAndTotal('Electrical Bill', threeDollars)
+        annotherExpense = self.expenseWithDescriptionAndTotal('Electrical Bill', threeDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         aSource.addExpense(annotherExpense)
@@ -169,9 +169,9 @@ class StatementActivityClassificationTest(TestCase):
 
     def testTwoExpensesAreAggregatedIntoUnclassifiedWithTotalOfFiveDollarsWhenSingleGroceryCategoryDoesNotMatch(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('Expense_A', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('Expense_A', twoDollars)
         threeDollars = Dollars.amount(3)
-        annotherExpense = Expense.withDescriptionAndTotal('Expense_B', threeDollars)
+        annotherExpense = self.expenseWithDescriptionAndTotal('Expense_B', threeDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         aSource.addExpense(annotherExpense)
@@ -186,9 +186,9 @@ class StatementActivityClassificationTest(TestCase):
 
     def testATwoDollarsExpenseGoesIntoGroceriesAndAnotherFiveDollarsExpenseGoesIntoServices(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
         threeDollars = Dollars.amount(3)
-        annotherExpense = Expense.withDescriptionAndTotal('Electrical Bill', threeDollars)
+        annotherExpense = self.expenseWithDescriptionAndTotal('Electrical Bill', threeDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         aSource.addExpense(annotherExpense)
@@ -204,9 +204,9 @@ class StatementActivityClassificationTest(TestCase):
 
     def testTwoExpensesAreAggregatedIntoGroceriesWithTotalOfFiveDollarsAndServicesTotalsZeroDollars(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
         threeDollars = Dollars.amount(3)
-        annotherExpense = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', threeDollars)
+        annotherExpense = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', threeDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         aSource.addExpense(annotherExpense)
@@ -223,9 +223,9 @@ class StatementActivityClassificationTest(TestCase):
 
     def testTwoExpensesAreAggregatedIntoUnclassifiedWhenBothGroceriesAndServicesCategoriesDoNotMatch(self):
         twoDollars = Dollars.amount(2)
-        anExpense = Expense.withDescriptionAndTotal('Expense_A', twoDollars)
+        anExpense = self.expenseWithDescriptionAndTotal('Expense_A', twoDollars)
         threeDollars = Dollars.amount(3)
-        annotherExpense = Expense.withDescriptionAndTotal('Expense_B', threeDollars)
+        annotherExpense = self.expenseWithDescriptionAndTotal('Expense_B', threeDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(anExpense)
         aSource.addExpense(annotherExpense)
@@ -242,11 +242,11 @@ class StatementActivityClassificationTest(TestCase):
 
     def testThreeExpensesWithDifferentDescriptionsAreClassifiedIntoGroceriesWithTotalOfTwelveDollars(self):
         twoDollars = Dollars.amount(2)
-        expenseA = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
+        expenseA = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
         threeDollars = Dollars.amount(3)
-        expenseB = Expense.withDescriptionAndTotal('PayAPP XYZ_Fresh NY #R#', threeDollars)
+        expenseB = self.expenseWithDescriptionAndTotal('PayAPP XYZ_Fresh NY #R#', threeDollars)
         sevenDollars = Dollars.amount(7)
-        expenseC = Expense.withDescriptionAndTotal('PayAPP Goods_4_You NY #R#', sevenDollars)
+        expenseC = self.expenseWithDescriptionAndTotal('PayAPP Goods_4_You NY #R#', sevenDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(expenseA)
         aSource.addExpense(expenseB)
@@ -265,11 +265,11 @@ class StatementActivityClassificationTest(TestCase):
 
     def testThreeExpensesGoIntoUnclassifiedIfGroceriesConditionsAreEmpty(self):
         twoDollars = Dollars.amount(2)
-        expenseA = Expense.withDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
+        expenseA = self.expenseWithDescriptionAndTotal('PayAPP MarketABC NY #R#', twoDollars)
         threeDollars = Dollars.amount(3)
-        expenseB = Expense.withDescriptionAndTotal('PayAPP XYZ_Fresh NY #R#', threeDollars)
+        expenseB = self.expenseWithDescriptionAndTotal('PayAPP XYZ_Fresh NY #R#', threeDollars)
         sevenDollars = Dollars.amount(7)
-        expenseC = Expense.withDescriptionAndTotal('PayAPP Goods_4_You NY #R#', sevenDollars)
+        expenseC = self.expenseWithDescriptionAndTotal('PayAPP Goods_4_You NY #R#', sevenDollars)
         aSource = LoadedExpensesAndIncomesSource()
         aSource.addExpense(expenseA)
         aSource.addExpense(expenseB)
@@ -298,3 +298,6 @@ class StatementActivityClassificationTest(TestCase):
     def testStringInActivityDescriptionInclusionConditionCannotBeEmpty(self):
         with self.assertRaisesRegex(Exception, 'String to search for cannot be empty'):
             ActivityDescriptionIncludesStringCondition.forString('')
+    
+    def expenseWithDescriptionAndTotal(self, aDescription, aTotal):
+        return Expense.expenseWithDescriptionAndTotal(aDescription, aTotal)
