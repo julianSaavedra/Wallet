@@ -6,13 +6,7 @@ from src.model import AccountStatementFileLineParser, SingleAmountColumnAccountS
 from test.testSupport import LoadedExpensesAndIncomesSource
 
 class AccountStatementTest(TestCase):
-
-    def testTotalExpenseOfStatementWithNoSourceIsZeroDollars(self):
-        #toBeRemoved
-        statement = AccountStatement.fromSources([])
-        totalExpenses = statement.totalExpenses()
-        self.assertEqual(totalExpenses,self.zeroDollars())
-    
+  
     def testTotalExpenseFromStatementWithSourceWithNoExpensesIsZeroDollars(self):
         aSource = LoadedExpensesAndIncomesSource()
         statement = AccountStatement.fromSource(aSource)
@@ -30,66 +24,20 @@ class AccountStatementTest(TestCase):
         tenDollars = self.dollars(10)
         twoDollars = self.dollars(2)
         aSource = self.sourceWithExpenses([tenDollars, twoDollars])
-        statement = AccountStatement.fromSources([aSource])
+        statement = AccountStatement.fromSource(aSource)
         totalExpenses = statement.totalExpenses()
         self.assertEqual(totalExpenses, self.dollars(12))
     
-    def testTotalExpenseFromSummaryWithTwoSourcesWithSingleExpensesEachIsSeventeenDollars(self):
-        #toBeRemoved
-        eightDollars = self.dollars(8)
-        aSource = self.sourceWithSingleExpense(eightDollars)
-        nineDollars = self.dollars(9)
-        anotherSource = self.sourceWithSingleExpense(nineDollars)
-        statement = AccountStatement.fromSources([aSource, anotherSource])
-        totalExpenses = statement.totalExpenses()
-        self.assertEqual(totalExpenses, self.dollars(17))
-    
-    def testTotalExpenseFromSummaryWithTwoSourcesWithTwoExpensesEachIsTwentyNineDollars(self):
-        #toBeRemoved
-        tenDollars = self.dollars(10)
-        twoDollars = self.dollars(2)
-        aSource = self.sourceWithExpenses([tenDollars, twoDollars])
-        eightDollars = self.dollars(8)
-        nineDollars = self.dollars(9)
-        anotherSource = self.sourceWithExpenses([nineDollars, eightDollars])
-        statement = AccountStatement.fromSources([aSource, anotherSource])
-        totalExpenses = statement.totalExpenses()
-        self.assertEqual(totalExpenses, self.dollars(29))        
-    
-    def testTotalExpenseFromSummaryWithThreeSourcesWithThreeExpensesEachIsThirtyNineDollars(self):
-        #toBeRemoved
-        oneDollar = self.dollars(1)
-        twoDollars = self.dollars(2)
-        threeDollars = self.dollars(3)
-        firstSource = self.sourceWithExpenses([oneDollar, twoDollars, threeDollars])
-        fortyDollar = self.dollars(40)
-        fiftyDollars = self.dollars(50)
-        sixtyDollars = self.dollars(60)
-        secondSource = self.sourceWithExpenses([fortyDollar, fiftyDollars, sixtyDollars])
-        sevenHundredDollar = self.dollars(700)
-        eightHundredDollars = self.dollars(800)
-        nineHundredDollars = self.dollars(900)
-        thirdSource = self.sourceWithExpenses([sevenHundredDollar, eightHundredDollars, nineHundredDollars])
-        statement = AccountStatement.fromSources([firstSource, secondSource, thirdSource])
-        totalExpenses = statement.totalExpenses()
-        self.assertEqual(totalExpenses, self.dollars(2556))
-
-    def testTotalIncomeFromSummaryWithNoSourceIsZeroDollars(self):
-        #toBeRemoved
-        statement = AccountStatement.fromSources([])
-        totalIncome = statement.totalIncome()
-        self.assertEqual(totalIncome,self.zeroDollars())
-
     def testTotalIncomeFromStatementWithSourceWithNoIncomesIsZeroDollars(self):
         aSource = LoadedExpensesAndIncomesSource()
-        statement = AccountStatement.fromSources([aSource])
+        statement = AccountStatement.fromSource(aSource)
         totalIncome = statement.totalIncome()
         self.assertEqual(totalIncome, self.zeroDollars())
 
     def testTotalIncomeFromStatementWithSourceWithSingleIncomeIsFiftyDollars(self):
         fiftyDollars = self.dollars(50)
         aSource = self.sourceWithSingleIncome(fiftyDollars)
-        statement = AccountStatement.fromSources([aSource])
+        statement = AccountStatement.fromSource(aSource)
         totalIncome = statement.totalIncome()
         self.assertEqual(totalIncome, fiftyDollars)
 
@@ -101,24 +49,6 @@ class AccountStatementTest(TestCase):
         statement = AccountStatement.fromSource(aSource)
         totalIncome = statement.totalIncome()
         self.assertEqual(totalIncome, self.dollars(39))
-
-    def testTotalIncomeFromSummaryWithThreeSourcesWithThreeIncomesEachIsThirtyNineDollars(self):
-        #toBeRemoved
-        oneDollar = self.dollars(1)
-        twoDollars = self.dollars(2)
-        threeDollars = self.dollars(3)
-        firstSource = self.sourceWithIncomes([oneDollar, twoDollars, threeDollars])
-        fortyDollar = self.dollars(40)
-        fiftyDollars = self.dollars(50)
-        sixtyDollars = self.dollars(60)
-        secondSource = self.sourceWithIncomes([fortyDollar, fiftyDollars, sixtyDollars])
-        sevenHundredDollar = self.dollars(700)
-        eightHundredDollars = self.dollars(800)
-        nineHundredDollars = self.dollars(900)
-        thirdSource = self.sourceWithIncomes([sevenHundredDollar, eightHundredDollars, nineHundredDollars])
-        statement = AccountStatement.fromSources([firstSource, secondSource, thirdSource])
-        totalIncome = statement.totalIncome()
-        self.assertEqual(totalIncome, self.dollars(2556))
 
     def zeroDollars(self):
         return Dollars.zero()
