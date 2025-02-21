@@ -30,6 +30,10 @@ class Dollars():
 
 class AccountStatement():
     @classmethod
+    def fromSource(cls, aSource):
+        return cls.fromSources([aSource])
+
+    @classmethod
     def fromSources(cls, sources=[]):
         return cls(sources)
     
@@ -116,7 +120,11 @@ class Expense():
 
     @classmethod
     def incomeWithTotal(cls, total):
-        return cls.withDescriptionAndTotal('No Description', 'Income', total)
+        return cls.incomeWithDescriptionAndTotal('No Description', total)
+    
+    @classmethod
+    def incomeWithDescriptionAndTotal(cls, aDescription, total):
+        return cls.withDescriptionAndTotal(aDescription, 'Income', total)
     
     @classmethod
     def withDescriptionAndTotal(cls,description, type, total):
@@ -140,26 +148,32 @@ class Expense():
 class AccountStatementFileRecordToActivityTransformation():
 
     def activityFromRecord(self, header, spec, lineRecord):
+        description = spec.descriptionFromLine(header, lineRecord)
         expenseAmount = spec.expenseAmountFromLine(header, lineRecord)
         if expenseAmount:
-            return Expense.expenseWithTotal(Dollars.amount(expenseAmount))
+            return Expense.expenseWithDescriptionAndTotal(description, Dollars.amount(expenseAmount))
         incomeAmount = spec.incomeAmountFromLine(header, lineRecord)
         if incomeAmount:
-            return Expense.incomeWithTotal(Dollars.amount(incomeAmount))
+            return Expense.incomeWithDescriptionAndTotal(description, Dollars.amount(incomeAmount))
     
 
 class SingleAmountColumnAccountStatementFileRecordSpecification:
     
     @classmethod
-    def forSpecificColumn(cls, amountColumn):
-        return cls(amountColumn)
+    def forSpecificColumn(cls, descriptionColumn, amountColumn):
+        return cls(descriptionColumn, amountColumn)
     
-    def __init__(self, amountColumn):
+    def __init__(self, descriptionColumn, amountColumn):
+        self._descriptionColumn = descriptionColumn
         self._amountColumn = amountColumn
     
     def expenseAmountFromLine(self, header, lineRecord):
         amount = self._amountAtColumn(header, lineRecord, self._amountColumn)
         return amount if amount > 0 else 0
+    
+    def descriptionFromLine(self, header, lineRecord):
+        descriptionIndex = header.index(self._descriptionColumn)
+        return lineRecord[descriptionIndex]
 
     def incomeAmountFromLine(self, header, lineRecord):
         amount = self._amountAtColumn(header, lineRecord, self._amountColumn)
@@ -174,15 +188,20 @@ class SingleAmountColumnAccountStatementFileRecordSpecification:
 class TwoAmountColumnsAccountStatementFileRecordSpecification:
 
     @classmethod
-    def forColumns(cls, expenseColumn, incomeColumn):
-        return cls(expenseColumn, incomeColumn)
+    def forColumns(cls, descriptionColumn, expenseColumn, incomeColumn):
+        return cls(descriptionColumn, expenseColumn, incomeColumn)
 
-    def __init__(self, expenseColumn, incomeColumn):
+    def __init__(self, descriptionColumn, expenseColumn, incomeColumn):
+        self._descriptionColumn = descriptionColumn
         self._expenseColumn = expenseColumn
         self._incomeColumn = incomeColumn
     
     def expenseAmountFromLine(self, header, lineRecord):
         return self._amountAtColumn(header, lineRecord, self._expenseColumn)
+
+    def descriptionFromLine(self, header, lineRecord):
+        descriptionIndex = header.index(self._descriptionColumn)
+        return lineRecord[descriptionIndex]
 
     def incomeAmountFromLine(self, header, lineRecord):
         return self._amountAtColumn(header, lineRecord, self._incomeColumn)

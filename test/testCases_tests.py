@@ -6,25 +6,27 @@ from src.model import AccountStatementFileLineParser, SingleAmountColumnAccountS
 from test.testSupport import LoadedExpensesAndIncomesSource
 
 class AccountStatementTest(TestCase):
+
     def testTotalExpenseOfStatementWithNoSourceIsZeroDollars(self):
+        #toBeRemoved
         statement = AccountStatement.fromSources([])
         totalExpenses = statement.totalExpenses()
         self.assertEqual(totalExpenses,self.zeroDollars())
     
-    def testTotalExpenseFromSummaryWithSingleSourceWithNoExpensesIsZeroDollars(self):
+    def testTotalExpenseFromStatementWithSourceWithNoExpensesIsZeroDollars(self):
         aSource = LoadedExpensesAndIncomesSource()
-        statement = AccountStatement.fromSources([aSource])
+        statement = AccountStatement.fromSource(aSource)
         totalExpenses = statement.totalExpenses()
         self.assertEqual(totalExpenses, self.zeroDollars())
     
-    def testTotalExpenseFromSummaryWithSingleSourceWithSingleExpensesIsTenDollars(self):
+    def testTotalExpenseFromStatementWithSourceWithSingleExpenseIsTenDollars(self):
         tenDollars = self.dollars(10)
         aSource = self.sourceWithSingleExpense(tenDollars)
-        statement = AccountStatement.fromSources([aSource])
+        statement = AccountStatement.fromSource(aSource)
         totalExpenses = statement.totalExpenses()
         self.assertEqual(totalExpenses, tenDollars)
     
-    def testTotalExpenseFromSummaryWithSingleSourceWithTwoExpensesIsTwelveDollars(self):
+    def testTotalExpenseFromStatementWithSourceWithTwoExpensesIsTwelveDollars(self):
         tenDollars = self.dollars(10)
         twoDollars = self.dollars(2)
         aSource = self.sourceWithExpenses([tenDollars, twoDollars])
@@ -33,6 +35,7 @@ class AccountStatementTest(TestCase):
         self.assertEqual(totalExpenses, self.dollars(12))
     
     def testTotalExpenseFromSummaryWithTwoSourcesWithSingleExpensesEachIsSeventeenDollars(self):
+        #toBeRemoved
         eightDollars = self.dollars(8)
         aSource = self.sourceWithSingleExpense(eightDollars)
         nineDollars = self.dollars(9)
@@ -42,6 +45,7 @@ class AccountStatementTest(TestCase):
         self.assertEqual(totalExpenses, self.dollars(17))
     
     def testTotalExpenseFromSummaryWithTwoSourcesWithTwoExpensesEachIsTwentyNineDollars(self):
+        #toBeRemoved
         tenDollars = self.dollars(10)
         twoDollars = self.dollars(2)
         aSource = self.sourceWithExpenses([tenDollars, twoDollars])
@@ -53,6 +57,7 @@ class AccountStatementTest(TestCase):
         self.assertEqual(totalExpenses, self.dollars(29))        
     
     def testTotalExpenseFromSummaryWithThreeSourcesWithThreeExpensesEachIsThirtyNineDollars(self):
+        #toBeRemoved
         oneDollar = self.dollars(1)
         twoDollars = self.dollars(2)
         threeDollars = self.dollars(3)
@@ -70,24 +75,35 @@ class AccountStatementTest(TestCase):
         self.assertEqual(totalExpenses, self.dollars(2556))
 
     def testTotalIncomeFromSummaryWithNoSourceIsZeroDollars(self):
+        #toBeRemoved
         statement = AccountStatement.fromSources([])
         totalIncome = statement.totalIncome()
         self.assertEqual(totalIncome,self.zeroDollars())
 
-    def testTotalIncomeFromSummaryWithSingleSourceWithNoIncomesIsZeroDollars(self):
+    def testTotalIncomeFromStatementWithSourceWithNoIncomesIsZeroDollars(self):
         aSource = LoadedExpensesAndIncomesSource()
         statement = AccountStatement.fromSources([aSource])
         totalIncome = statement.totalIncome()
         self.assertEqual(totalIncome, self.zeroDollars())
 
-    def testTotalIncomeFromSummaryWithSingleSourceWithSingleIncomeIsFiftyDollars(self):
+    def testTotalIncomeFromStatementWithSourceWithSingleIncomeIsFiftyDollars(self):
         fiftyDollars = self.dollars(50)
         aSource = self.sourceWithSingleIncome(fiftyDollars)
         statement = AccountStatement.fromSources([aSource])
         totalIncome = statement.totalIncome()
         self.assertEqual(totalIncome, fiftyDollars)
 
+    def testTotalIncomeFromStatementWithSourceWithThreeIncomesIsThirtyNineDollars(self):
+        threeDollars = self.dollars(3)
+        tenDollars = self.dollars(10)
+        twentySixDollars = self.dollars(26)
+        aSource = self.sourceWithIncomes([threeDollars, tenDollars, twentySixDollars])
+        statement = AccountStatement.fromSource(aSource)
+        totalIncome = statement.totalIncome()
+        self.assertEqual(totalIncome, self.dollars(39))
+
     def testTotalIncomeFromSummaryWithThreeSourcesWithThreeIncomesEachIsThirtyNineDollars(self):
+        #toBeRemoved
         oneDollar = self.dollars(1)
         twoDollars = self.dollars(2)
         threeDollars = self.dollars(3)
@@ -134,7 +150,7 @@ class AccountStatementFileSourceTest(TestCase):
     def testNoExpensesAreImportedFromEmptyFile(self):
         aFile = TestFile()
         parser = AccountStatementFileLineParser.commaSeparatedValues()
-        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(expenseColumn = 'Debit', incomeColumn = 'Credit')
+        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(descriptionColumn = 'Description', expenseColumn = 'Debit', incomeColumn = 'Credit')
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         expenses = aSource.expenses()
         self.assertEqual(len(expenses),0)
@@ -142,7 +158,7 @@ class AccountStatementFileSourceTest(TestCase):
     def testNoIncomesAreImportedFromEmptyFile(self):
         aFile = TestFile()
         parser = AccountStatementFileLineParser.commaSeparatedValues()
-        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(expenseColumn = 'Debit', incomeColumn = 'Credit')
+        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(descriptionColumn = 'Description', expenseColumn = 'Debit', incomeColumn = 'Credit')
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         incomes = aSource.incomes()
         self.assertEqual(len(incomes),0)
@@ -150,81 +166,88 @@ class AccountStatementFileSourceTest(TestCase):
     def testSingleExpenseOfTwoDollarsIsImportedFromFile(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit\n')
-        aFile.addLine('09-27-2024,"PurchaseA",2.00,\n')
+        aFile.addLine('09-27-2024,PurchaseA,2.00,\n')
         parser = AccountStatementFileLineParser.commaSeparatedValues()
-        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(expenseColumn = 'Debit', incomeColumn = 'Credit')
+        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(descriptionColumn = 'Description', expenseColumn = 'Debit', incomeColumn = 'Credit')
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         expenses = aSource.expenses()
-        self.assertAllAndOnlyTotalsInDollars(expenses, [2])
+        self.assertActivitiesQuantity(expenses, 1)
+        self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'PurchaseA', 2)
     
     def testThreeExpensesOfTwoSixAndTenDollarsAreImportedFromFile(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit')
-        aFile.addLine('09-27-2024,"PurchaseA",2.00,')
-        aFile.addLine('09-27-2024,"PurchaseB",6.00,')
-        aFile.addLine('09-27-2024,"PurchaseC",10.00,')
+        aFile.addLine('09-27-2024,PurchaseA,2.00,')
+        aFile.addLine('09-27-2024,PurchaseB,6.00,')
+        aFile.addLine('09-27-2024,PurchaseC,10.00,')
         parser = AccountStatementFileLineParser.commaSeparatedValues()
-        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(expenseColumn = 'Debit', incomeColumn = 'Credit')
+        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(descriptionColumn = 'Description', expenseColumn = 'Debit', incomeColumn = 'Credit')
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         expenses = aSource.expenses()
-        self.assertAllAndOnlyTotalsInDollars(expenses, [2, 6, 10])
+        self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'PurchaseA', 2)
+        self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'PurchaseB', 6)
+        self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'PurchaseC', 10)
     
     def testSingleIncomeOfSevenDollarsIsImportedFromFile(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit')
-        aFile.addLine('09-30-2024,"IncomeA",,7.85')
+        aFile.addLine('09-30-2024,IncomeA,,7.85')
         parser = AccountStatementFileLineParser.commaSeparatedValues()
-        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(expenseColumn = 'Debit', incomeColumn = 'Credit')
+        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(descriptionColumn = 'Description', expenseColumn = 'Debit', incomeColumn = 'Credit')
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         incomes = aSource.incomes()
-        self.assertAllAndOnlyTotalsInDollars(incomes, [7.85])
+        self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'IncomeA', 7.85)
     
     def testThreeIncomesOfTenTwelveAndTwentyDollarsAreImportedFromFile(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit')
-        aFile.addLine('09-30-2024,"IncomeA",,10.00')
-        aFile.addLine('09-30-2024,"IncomeB",,12.00')
-        aFile.addLine('09-30-2024,"IncomeC",,20.00')
+        aFile.addLine('09-30-2024,IncomeA,,10.00')
+        aFile.addLine('09-30-2024,IncomeB,,12.00')
+        aFile.addLine('09-30-2024,IncomeC,,20.00')
         parser = AccountStatementFileLineParser.commaSeparatedValues()
-        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(expenseColumn = 'Debit', incomeColumn = 'Credit')
+        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(descriptionColumn = 'Description', expenseColumn = 'Debit', incomeColumn = 'Credit')
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         incomes = aSource.incomes()
-        self.assertAllAndOnlyTotalsInDollars(incomes, [10, 12, 20])
+        self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'IncomeA', 10)
+        self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'IncomeB', 12)
+        self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'IncomeC', 20)
     
     def testTwoIncomesOfTwoAndFourDollarsAndTwoExpensesOfThreeAndFiveAreImportedFromFile(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit')
-        aFile.addLine('09-30-2024,"IncomeA",,2.00')
-        aFile.addLine('09-27-2024,"PurchaseA",3.00,')        
-        aFile.addLine('09-30-2024,"IncomeB",,4.00')
-        aFile.addLine('09-27-2024,"PurchaseB",5.00,')
+        aFile.addLine('09-30-2024,IncomeA,,2.00')
+        aFile.addLine('09-27-2024,PurchaseA,3.00,')        
+        aFile.addLine('09-30-2024,IncomeB,,4.00')
+        aFile.addLine('09-27-2024,PurchaseB,5.00,')
         parser = AccountStatementFileLineParser.commaSeparatedValues()
-        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(expenseColumn = 'Debit', incomeColumn = 'Credit')
+        spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(descriptionColumn = 'Description', expenseColumn = 'Debit', incomeColumn = 'Credit')
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         expenses = aSource.expenses()
         incomes = aSource.incomes()
-        self.assertAllAndOnlyTotalsInDollars(expenses, [3, 5])
-        self.assertAllAndOnlyTotalsInDollars(incomes, [2, 4])
+        self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'PurchaseA', 3)
+        self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'PurchaseB', 5)
+        self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'IncomeA', 2)
+        self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'IncomeB', 4)
     
     def testSingleExpenseOfThreeDollarsIsImportedFromFileWithSingleAmountColumn(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Card Member,Account #,Amount\n')
         aFile.addLine('12/05/2024,Subway,Name LastName,-13006,3.00\n')
-        spec = SingleAmountColumnAccountStatementFileRecordSpecification.forSpecificColumn(amountColumn = 'Amount')
+        spec = SingleAmountColumnAccountStatementFileRecordSpecification.forSpecificColumn(descriptionColumn = 'Description', amountColumn = 'Amount')
         parser = AccountStatementFileLineParser.commaSeparatedValues()
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         expenses = aSource.expenses()
-        self.assertAllAndOnlyTotalsInDollars(expenses, [3])
+        self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'Subway', 3)
     
     def testSingleIncomeOfFiveDollarsIsImportedFromFileWithSingleAmountColumn(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Card Member,Account #,Amount\n')
         aFile.addLine('12/10/2024,Payment,Name LastName,-13006,-5.00\n')
-        spec = SingleAmountColumnAccountStatementFileRecordSpecification.forSpecificColumn(amountColumn = 'Amount')
+        spec = SingleAmountColumnAccountStatementFileRecordSpecification.forSpecificColumn(descriptionColumn = 'Description', amountColumn = 'Amount')
         parser = AccountStatementFileLineParser.commaSeparatedValues()
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         incomes = aSource.incomes()
-        self.assertAllAndOnlyTotalsInDollars(incomes, [5])
+        self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'Payment', 5)
     
     def testTwoIncomesOfTwoAndFourDollarsAndTwoExpensesOfThreeAndFiveAreImportedFromFileWithSingleAmountColumn(self):
         aFile = TestFile()
@@ -233,14 +256,29 @@ class AccountStatementFileSourceTest(TestCase):
         aFile.addLine('12/10/2024,Payment,Name LastName,-13006,-2.00\n')
         aFile.addLine('12/05/2024,Coffee,Name LastName,-13006,5.00\n')
         aFile.addLine('12/10/2024,Payment,Name LastName,-13006,-4.00\n')
-        spec = SingleAmountColumnAccountStatementFileRecordSpecification.forSpecificColumn(amountColumn = 'Amount')
+        spec = SingleAmountColumnAccountStatementFileRecordSpecification.forSpecificColumn(descriptionColumn = 'Description', amountColumn = 'Amount')
         parser = AccountStatementFileLineParser.commaSeparatedValues()
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         expenses = aSource.expenses()
         incomes = aSource.incomes()
-        self.assertAllAndOnlyTotalsInDollars(expenses, [3, 5])
-        self.assertAllAndOnlyTotalsInDollars(incomes, [2, 4])
+        self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'Subway', 3)
+        self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'Coffee', 5)
+        self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'Payment', 2)
+        self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'Payment', 4)
 
+    def assertActivitiesQuantity(self, activities, expectedSize):
+        self.assertEqual(len(activities), expectedSize)
+    
+    def assertActivityWithDescriptionAndTotalInDollars(self, activities, aDescription, aDollarAmount):
+        matchingActivityWasFound = False
+        expectedActivityTotal = Dollars.amount(aDollarAmount)
+        for anActivity in activities:
+            currentActivityMatchesDescription = anActivity.description() == aDescription
+            currentActivityMatchesTotal = anActivity.total() == expectedActivityTotal
+            currentActivityMatches = currentActivityMatchesDescription and currentActivityMatchesTotal
+            matchingActivityWasFound = matchingActivityWasFound or currentActivityMatches
+        self.assertTrue(matchingActivityWasFound, 'No matching activity with expected description and total')
+    
     def assertAllAndOnlyTotalsInDollars(self, activities, expectedDollarAmounts):
         self.assertEqual(len(activities), len(expectedDollarAmounts))
         for activity , expectedDollarAmount in zip(activities, expectedDollarAmounts):
@@ -278,7 +316,6 @@ class AccountStatementFileLineParserTest(TestCase):
         parsedLine = parser.parse('123,"NY,USA",456')
         self.assertEqual(parsedLine, ['123', 'NY,USA', '456'])
     
-
 
 class DollarsTests(TestCase):
     def testEquals(self):
