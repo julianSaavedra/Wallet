@@ -31,32 +31,22 @@ class Dollars():
 class AccountStatement():
     @classmethod
     def fromSource(cls, aSource):
-        return cls.fromSources([aSource])
+        return cls(aSource)
 
-    @classmethod
-    def fromSources(cls, sources=[]):
-        return cls(sources)
-    
-    def __init__(self, sources):
-        self._sources = sources 
+    def __init__(self, aSource):
+        self._source = aSource 
     
     def totalExpenses(self):
-        return self.sumFromSources(lambda aSource: self.totalExpensesFromSource(aSource))
+        return self.totalExpensesFromSource(self._source)
   
     def totalIncome(self):
-        return self.sumFromSources(lambda aSource: self.totalIncomeFromSource(aSource))
+        return self.totalIncomeFromSource(self._source)
     
     def activityAggregationBasedOnSpec(self, aggregationSpec):
         return aggregationSpec.aggregatedResultsFromActivities(self.allActivities())
     
     def allActivities(self):
-        activities = []
-        for aSource in self._sources:
-            activities = activities + aSource.expenses() + aSource.incomes()
-        return activities
-
-    def sumFromSources(self, summandsExtractor):
-        return self.sum(self._sources, summandsExtractor)
+        return self._source.expenses() + self._source.incomes()
 
     def totalExpensesFromSource(self, aSource):
         return self.sum(aSource.expenses(), lambda anExpense: anExpense.total())
