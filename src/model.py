@@ -99,7 +99,7 @@ class AccountStatementFileSource():
         self._loadedIncomes = incomes
 
 
-class Expense():
+class SingleStatementActivity():
     @classmethod
     def expenseWithTotal(cls, total):
         return cls.expenseWithDescriptionAndTotal('No Description', total)
@@ -141,10 +141,10 @@ class AccountStatementFileRecordToActivityTransformation():
         description = spec.descriptionFromLine(header, lineRecord)
         expenseAmount = spec.expenseAmountFromLine(header, lineRecord)
         if expenseAmount:
-            return Expense.expenseWithDescriptionAndTotal(description, Dollars.amount(expenseAmount))
+            return SingleStatementActivity.expenseWithDescriptionAndTotal(description, Dollars.amount(expenseAmount))
         incomeAmount = spec.incomeAmountFromLine(header, lineRecord)
         if incomeAmount:
-            return Expense.incomeWithDescriptionAndTotal(description, Dollars.amount(incomeAmount))
+            return SingleStatementActivity.incomeWithDescriptionAndTotal(description, Dollars.amount(incomeAmount))
     
 
 class SingleAmountColumnAccountStatementFileRecordSpecification:
