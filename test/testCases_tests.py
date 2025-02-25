@@ -83,7 +83,7 @@ class AccountStatementFileSourceTest(TestCase):
         spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(descriptionColumn = 'Description', expenseColumn = 'Debit', incomeColumn = 'Credit')
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         expenses = aSource.expenses()
-        self.assertEqual(len(expenses),0)
+        self.assertActivitiesQuantity(expenses,0)
     
     def testNoIncomesAreImportedFromEmptyFile(self):
         aFile = TestFile()
@@ -91,9 +91,9 @@ class AccountStatementFileSourceTest(TestCase):
         spec = TwoAmountColumnsAccountStatementFileRecordSpecification.forColumns(descriptionColumn = 'Description', expenseColumn = 'Debit', incomeColumn = 'Credit')
         aSource = AccountStatementFileSource.fromFile(aFile, spec, parser)
         incomes = aSource.incomes()
-        self.assertEqual(len(incomes),0)
+        self.assertActivitiesQuantity(incomes,0)
     
-    def testSingleExpenseOfTwoDollarsIsImportedFromFile(self):
+    def testSingleExpenseOfTwoDollarsIsImportedFromFileWithDebitAndCreditColumns(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit\n')
         aFile.addLine('09-27-2024,PurchaseA,2.00,\n')
@@ -104,7 +104,7 @@ class AccountStatementFileSourceTest(TestCase):
         self.assertActivitiesQuantity(expenses, 1)
         self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'PurchaseA', 2)
     
-    def testThreeExpensesOfTwoSixAndTenDollarsAreImportedFromFile(self):
+    def testThreeExpensesOfTwoSixAndTenDollarsAreImportedFromFileWithDebitAndCreditColumns(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit')
         aFile.addLine('09-27-2024,PurchaseA,2.00,')
@@ -118,7 +118,7 @@ class AccountStatementFileSourceTest(TestCase):
         self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'PurchaseB', 6)
         self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'PurchaseC', 10)
     
-    def testSingleIncomeOfSevenDollarsIsImportedFromFile(self):
+    def testSingleIncomeOfSevenDollarsIsImportedFromFileWithDebitAndCreditColumns(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit')
         aFile.addLine('09-30-2024,IncomeA,,7.85')
@@ -128,7 +128,7 @@ class AccountStatementFileSourceTest(TestCase):
         incomes = aSource.incomes()
         self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'IncomeA', 7.85)
     
-    def testThreeIncomesOfTenTwelveAndTwentyDollarsAreImportedFromFile(self):
+    def testThreeIncomesOfTenTwelveAndTwentyDollarsAreImportedFromFileWithDebitAndCreditColumns(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit')
         aFile.addLine('09-30-2024,IncomeA,,10.00')
@@ -142,7 +142,7 @@ class AccountStatementFileSourceTest(TestCase):
         self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'IncomeB', 12)
         self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'IncomeC', 20)
     
-    def testTwoIncomesOfTwoAndFourDollarsAndTwoExpensesOfThreeAndFiveAreImportedFromFile(self):
+    def testTwoIncomesOfTwoAndFourDollarsAndTwoExpensesOfThreeAndFiveAreImportedFromFileWithDebitAndCreditColumns(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Debit,Credit')
         aFile.addLine('09-30-2024,IncomeA,,2.00')
@@ -159,7 +159,7 @@ class AccountStatementFileSourceTest(TestCase):
         self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'IncomeA', 2)
         self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'IncomeB', 4)
     
-    def testSingleExpenseOfThreeDollarsIsImportedFromFileWithSingleAmountColumn(self):
+    def testSingleExpenseOfThreeDollarsIsImportedFromFileWithSingleAmountColumnWithDebitAndCreditColumns(self):
         aFile = TestFile()
         aFile.addLine('Date,Description,Card Member,Account #,Amount\n')
         aFile.addLine('12/05/2024,Subway,Name LastName,-13006,3.00\n')
@@ -195,7 +195,7 @@ class AccountStatementFileSourceTest(TestCase):
         self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'Coffee', 5)
         self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'Payment', 2)
         self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'Payment', 4)
-
+    
     def assertActivitiesQuantity(self, activities, expectedSize):
         self.assertEqual(len(activities), expectedSize)
     
