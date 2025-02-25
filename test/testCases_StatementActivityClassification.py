@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from src.model_activityAggregation import ActivityAggregationDefinition, ActivityAggregationCompositeCondition, ActivityAggregationSpec
 from src.model_activityAggregation import  ActivityDescriptionIncludesStringCondition, ActivityPluggableCondition
-from src.model import AccountStatement, Dollars, SingleStatementActivity
+from src.model import AccountStatement, Dollars, StatementActivity
 from test.testSupport import LoadedExpensesAndIncomesSource
 
 class StatementActivityClassificationTest(TestCase):
@@ -300,4 +300,4 @@ class StatementActivityClassificationTest(TestCase):
             ActivityDescriptionIncludesStringCondition.forString('')
     
     def expenseWithDescriptionAndTotal(self, aDescription, aTotal):
-        return SingleStatementActivity.expenseWithDescriptionAndTotal(aDescription, aTotal)
+        return StatementActivity.expenseWithDescriptionAndTotal(aDescription, aTotal)

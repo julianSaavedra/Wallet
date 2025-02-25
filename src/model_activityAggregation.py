@@ -1,4 +1,4 @@
-from src.model import Dollars, SingleStatementActivity
+from src.model import Dollars, StatementActivity
 
 
 class ActivityAggregationSpec:
@@ -40,7 +40,7 @@ class ActivityAggregationSpec:
         for category, activities in aggregatedActivities.items():
             totalForCategory = Dollars.zero()
             for anActivity in activities: totalForCategory = totalForCategory + anActivity.total()
-            totalsAggregation[category] = SingleStatementActivity.expenseWithTotal(totalForCategory)
+            totalsAggregation[category] = StatementActivity.expenseWithTotal(totalForCategory)
         return totalsAggregation
 
 

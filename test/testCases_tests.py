@@ -1,7 +1,7 @@
 from unittest import TestCase
 from collections import deque
 
-from src.model import Dollars, AccountStatement, SingleStatementActivity, AccountStatementFileSource
+from src.model import Dollars, AccountStatement, StatementActivity, AccountStatementFileSource
 from src.model import AccountStatementFileLineParser, SingleAmountColumnAccountStatementFileRecordSpecification, TwoAmountColumnsAccountStatementFileRecordSpecification
 from test.testSupport import LoadedExpensesAndIncomesSource
 
@@ -65,14 +65,14 @@ class AccountStatementTest(TestCase):
     def sourceWithExpenses(self, amounts):
         aSource = LoadedExpensesAndIncomesSource()
         for anAmount in amounts:
-            anExpense = SingleStatementActivity.expenseWithTotal(anAmount)
+            anExpense = StatementActivity.expenseWithTotal(anAmount)
             aSource.addExpense(anExpense)
         return aSource
     
     def sourceWithIncomes(self, amounts):
         aSource = LoadedExpensesAndIncomesSource()
         for anAmount in amounts:
-            anExpense = SingleStatementActivity.incomeWithTotal(anAmount)
+            anExpense = StatementActivity.incomeWithTotal(anAmount)
             aSource.addIncome(anExpense)
         return aSource
 
