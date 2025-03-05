@@ -108,3 +108,33 @@ class ActivityAggregationDefinition:
 
     def matches(self, anActivity):
         return self._condition.satisfies(anActivity)
+
+
+class ActivityEnrichment():
+
+    @classmethod
+    def fromStatement(cls, aStatement):
+        return cls(aStatement)
+    
+    def __init__(self, aStatement):
+        self._statement = aStatement 
+
+    def results(self):
+        return [EnrichedActivity.withDescriptionAndBucket('Description123', 'NoBucket') for anActivity in self._statement.allActivities()]
+
+
+class EnrichedActivity():
+
+    @classmethod
+    def withDescriptionAndBucket(cls, description, bucket):
+        return cls(description, bucket)
+    
+    def __init__(self, description, bucket):
+        self._description = description
+        self._bucket = bucket
+
+    def description(self):
+        return self._description
+    
+    def bucket(self):
+        return self._bucket

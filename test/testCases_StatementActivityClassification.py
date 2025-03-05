@@ -3,6 +3,7 @@ from unittest import TestCase
 from src.model_activityAggregation import ActivityAggregationDefinition, ActivityAggregationCompositeCondition, ActivityAggregationSpec
 from src.model_activityAggregation import  ActivityDescriptionIncludesStringCondition, ActivityPluggableCondition
 from src.model import AccountStatement, Dollars, StatementActivity
+from src.model_activityAggregation import ActivityEnrichment
 from test.testSupport import LoadedActivitySource
 
 class StatementActivityClassificationTest(TestCase):
@@ -301,3 +302,32 @@ class StatementActivityClassificationTest(TestCase):
     
     def expenseWithDescriptionAndTotal(self, aDescription, aTotal):
         return StatementActivity.expenseWithDescriptionAndTotal(aDescription, aTotal)
+
+
+class ActivityEnrichmentTest(TestCase):
+    
+    def testNoActivityIsEnrichedIfAccountStatementHasNoActivities(self):
+        emptySource = LoadedActivitySource()
+        statement = AccountStatement.fromSource(emptySource)
+        activityEnrichment = ActivityEnrichment.fromStatement(statement)
+        self.assertEqual(len(activityEnrichment.results()), 0)
+    
+    def testSingleActivityInStatementIsEnrichedWithSameDescriptionAndNoBucketedIfNoSpecIsGiven(self):
+        twoDollars = Dollars.amount(2)
+        anExpense = StatementActivityClassificationTest().expenseWithDescriptionAndTotal('Description123', twoDollars)
+        aSource = LoadedActivitySource()
+        aSource.addExpense(anExpense)
+        statement = AccountStatement.fromSource(aSource)
+        activityEnrichment = ActivityEnrichment.fromStatement(statement)
+
+        enrichedActivities = activityEnrichment.results()
+
+        self.assertEqual(len(enrichedActivities), 1)
+        anEnrichedActivity = enrichedActivities[0]
+        self.assertEqual(anEnrichedActivity.description(), 'Description123')
+        self.assertEqual(anEnrichedActivity.bucket(), 'NoBucket')
+    
+    """def testSingleActivityInStatementIsEnrichedAsSupermarketABCAndBucketedAsGroceries(self):
+
+        self.assertEqual(len(activityEnrichment.results()), 1)
+        self.assertEqual(activityEnrichment.results()[0].description(), 'SupermarketABC')"""
