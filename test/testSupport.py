@@ -1,6 +1,6 @@
 
 
-class LoadedExpensesAndIncomesSource():
+class LoadedActivitySource():
     def __init__(self):
         self._expenses = []
         self._incomes = []

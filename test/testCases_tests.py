@@ -3,12 +3,12 @@ from collections import deque
 
 from src.model import Dollars, AccountStatement, StatementActivity, AccountStatementFileSource
 from src.model import AccountStatementFileLineParser, SingleAmountColumnAccountStatementFileRecordSpecification, TwoAmountColumnsAccountStatementFileRecordSpecification
-from test.testSupport import LoadedExpensesAndIncomesSource
+from test.testSupport import LoadedActivitySource
 
 class AccountStatementTest(TestCase):
   
     def testTotalExpenseFromStatementWithSourceWithNoExpensesIsZeroDollars(self):
-        aSource = LoadedExpensesAndIncomesSource()
+        aSource = LoadedActivitySource()
         statement = AccountStatement.fromSource(aSource)
         totalExpenses = statement.totalExpenses()
         self.assertEqual(totalExpenses, self.zeroDollars())
@@ -29,7 +29,7 @@ class AccountStatementTest(TestCase):
         self.assertEqual(totalExpenses, self.dollars(12))
     
     def testTotalIncomeFromStatementWithSourceWithNoIncomesIsZeroDollars(self):
-        aSource = LoadedExpensesAndIncomesSource()
+        aSource = LoadedActivitySource()
         statement = AccountStatement.fromSource(aSource)
         totalIncome = statement.totalIncome()
         self.assertEqual(totalIncome, self.zeroDollars())
@@ -63,14 +63,14 @@ class AccountStatementTest(TestCase):
         return self.sourceWithIncomes([anAmount])
 
     def sourceWithExpenses(self, amounts):
-        aSource = LoadedExpensesAndIncomesSource()
+        aSource = LoadedActivitySource()
         for anAmount in amounts:
             anExpense = StatementActivity.expenseWithTotal(anAmount)
             aSource.addExpense(anExpense)
         return aSource
     
     def sourceWithIncomes(self, amounts):
-        aSource = LoadedExpensesAndIncomesSource()
+        aSource = LoadedActivitySource()
         for anAmount in amounts:
             anExpense = StatementActivity.incomeWithTotal(anAmount)
             aSource.addIncome(anExpense)
