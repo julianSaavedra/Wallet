@@ -3,7 +3,7 @@ from unittest import TestCase
 from src.model_activityAggregation import ActivityAggregationDefinition, ActivityAggregationCompositeCondition, ActivityAggregationSpec
 from src.model_activityAggregation import  ActivityDescriptionIncludesStringCondition, ActivityPluggableCondition
 from src.model import AccountStatement, Dollars, StatementActivity
-from src.model_activityAggregation import ActivityEnrichment
+from src.model_activityAggregation import ActivityEnrichment, ActivityEnrichmentSpec, ActivityEnrichmentSpecDefinition
 from test.testSupport import LoadedActivitySource
 
 class StatementActivityClassificationTest(TestCase):
@@ -309,25 +309,64 @@ class ActivityEnrichmentTest(TestCase):
     def testNoActivityIsEnrichedIfAccountStatementHasNoActivities(self):
         emptySource = LoadedActivitySource()
         statement = AccountStatement.fromSource(emptySource)
-        activityEnrichment = ActivityEnrichment.fromStatement(statement)
-        self.assertEqual(len(activityEnrichment.results()), 0)
+        activityEnrichment = ActivityEnrichment.withSpec(self.emptySpec())
+        enrichedActivities = activityEnrichment.enrichedActivitiesFromStatement(statement)
+        self.assertEqual(len(enrichedActivities), 0)
     
     def testSingleActivityInStatementIsEnrichedWithSameDescriptionAndNoBucketedIfNoSpecIsGiven(self):
-        twoDollars = Dollars.amount(2)
-        anExpense = StatementActivityClassificationTest().expenseWithDescriptionAndTotal('Description123', twoDollars)
         aSource = LoadedActivitySource()
-        aSource.addExpense(anExpense)
+        aSource.addExpenseWithDescription('Description123')        
         statement = AccountStatement.fromSource(aSource)
-        activityEnrichment = ActivityEnrichment.fromStatement(statement)
-
-        enrichedActivities = activityEnrichment.results()
-
+        activityEnrichment = ActivityEnrichment.withSpec(self.emptySpec())
+        enrichedActivities = activityEnrichment.enrichedActivitiesFromStatement(statement)
         self.assertEqual(len(enrichedActivities), 1)
         anEnrichedActivity = enrichedActivities[0]
         self.assertEqual(anEnrichedActivity.description(), 'Description123')
-        self.assertEqual(anEnrichedActivity.bucket(), 'NoBucket')
-    
-    """def testSingleActivityInStatementIsEnrichedAsSupermarketABCAndBucketedAsGroceries(self):
+        self.assertEqual(anEnrichedActivity.bucket(), 'NoBucket')    
 
-        self.assertEqual(len(activityEnrichment.results()), 1)
-        self.assertEqual(activityEnrichment.results()[0].description(), 'SupermarketABC')"""
+    def testSingleActivityInStatementIsEnrichedAsMarketABCAndBucketedAsGroceries(self):
+        aSource = LoadedActivitySource()
+        aSource.addExpenseWithDescription('PayAPP Market#ABC NY #R#')        
+        statement = AccountStatement.fromSource(aSource)
+        specBuilder = ActivityEnrichmentSpecBuilder()
+        specBuilder.addDefintionSpecForDescriptionIncludingString('Groceries', 'MarketABC','Market#ABC')
+        spec = specBuilder.fullSpec()
+        activityEnrichment = ActivityEnrichment.withSpec(spec)
+        enrichedActivities = activityEnrichment.enrichedActivitiesFromStatement(statement)
+        self.assertEqual(len(enrichedActivities), 1)
+        anEnrichedActivity = enrichedActivities[0]
+        self.assertEqual(anEnrichedActivity.description(), 'MarketABC')
+        self.assertEqual(anEnrichedActivity.bucket(), 'Groceries')
+    
+    
+
+    def testBucketNameCannotBeEmpty(self):
+        specBuilder = ActivityEnrichmentSpecBuilder()
+        with self.assertRaisesRegex(Exception, 'Bucket name cannot be empty'):
+            specBuilder.addDefintionSpecForDescriptionIncludingString('', 'DescriptionOverride','StringInDescription')
+
+    def emptySpec(self):
+        specBuilder = ActivityEnrichmentSpecBuilder()
+        return specBuilder.fullSpec()
+
+#DescriptionOverride can be empty? it would use the original one?
+#DifferentConditionsFor same override/bucket
+#Goal - remove the original AggregationSpecs
+
+
+class ActivityEnrichmentSpecBuilder():
+    
+    def __init__(self):
+        self._definitions = []
+
+    def addDefintionSpecForDescriptionIncludingString(self, bucket, descriptionOverride, aString):
+        condition = ActivityDescriptionIncludesStringCondition.forString(aString)
+        aDefinition = ActivityEnrichmentSpecDefinition.withBucketDescriptionOverrideAndCondition(bucket, descriptionOverride, condition)
+        self.addNewDefinition(aDefinition)
+    
+    def addNewDefinition(self, aDefinition):
+        self._definitions.append(aDefinition)
+    
+    def fullSpec(self):
+        return ActivityEnrichmentSpec.withDefinitions(self._definitions) 
+    

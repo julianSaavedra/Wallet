@@ -111,16 +111,16 @@ class ActivityAggregationDefinition:
 
 
 class ActivityEnrichment():
-
-    @classmethod
-    def fromStatement(cls, aStatement):
-        return cls(aStatement)
     
-    def __init__(self, aStatement):
-        self._statement = aStatement 
-
-    def results(self):
-        return [EnrichedActivity.withDescriptionAndBucket('Description123', 'NoBucket') for anActivity in self._statement.allActivities()]
+    @classmethod
+    def withSpec(cls, spec):
+        return cls(spec)
+    
+    def __init__(self, spec):
+        self._spec = spec 
+    
+    def enrichedActivitiesFromStatement(self, aStatement):
+        return [self._spec.newEnrichedActivity(anActivity) for anActivity in aStatement.allActivities()]
 
 
 class EnrichedActivity():
@@ -138,3 +138,47 @@ class EnrichedActivity():
     
     def bucket(self):
         return self._bucket
+
+
+class ActivityEnrichmentSpec():
+     
+    @classmethod
+    def withDefinitions(cls, definitions):
+        return cls(definitions)
+
+    def __init__(self, definitions):
+        self._definitions = definitions
+
+    def newEnrichedActivity(self, anActivity):
+        aDefinition = self.matchingDefinitionForAnActivity(anActivity)
+        return EnrichedActivity.withDescriptionAndBucket(aDefinition.descriptionOverride(), aDefinition.bucket())
+    
+    def matchingDefinitionForAnActivity(self, anActivity):
+        for aDefinition in self._definitions:
+            if aDefinition.matches(anActivity): return aDefinition
+        return ActivityEnrichmentSpecDefinition.withBucketDescriptionOverrideAndCondition('NoBucket', 'Description123', None)
+
+class ActivityEnrichmentSpecDefinition():
+
+    @classmethod
+    def withBucketDescriptionOverrideAndCondition(cls, bucket, descriptionOverride, condition):
+        cls.assertBucket(bucket)
+        return cls(bucket, descriptionOverride, condition)
+
+    @classmethod
+    def assertBucket(cls, bucket):
+        if not bucket: raise Exception('Bucket name cannot be empty')
+
+    def __init__(self, bucket, descriptionOverride, condition):
+        self._bucket = bucket
+        self._descriptionOverride = descriptionOverride
+        self._condition = condition
+
+    def descriptionOverride(self):
+        return self._descriptionOverride
+    
+    def bucket(self):
+        return self._bucket
+
+    def matches(self, anActivity):
+        return self._condition.satisfies(anActivity)
