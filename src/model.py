@@ -68,12 +68,12 @@ class FinancialActivityStatement():
 
 class FinancialActivityFileSource():
     @classmethod
-    def fromFile(cls, file, spec, activityLineParser, activityEnrichmentSpec):
-        return cls(file, spec, activityLineParser, activityEnrichmentSpec)
+    def fromFile(cls, file, amountColumnSpec, activityLineParser, activityEnrichmentSpec):
+        return cls(file, amountColumnSpec, activityLineParser, activityEnrichmentSpec)
     
-    def __init__(self, file, spec, activityLineParser,activityEnrichmentSpec):
+    def __init__(self, file, amountColumnSpec, activityLineParser,activityEnrichmentSpec):
         self._file = file
-        self._spec = spec
+        self._amountColumnSpec = amountColumnSpec
         self._activityLineParser = activityLineParser
         self._activityEnrichmentSpec = activityEnrichmentSpec
         self._loadedExpenses = []
@@ -93,16 +93,47 @@ class FinancialActivityFileSource():
         lines = self._file.readlines()
         if lines:
             header = self._activityLineParser.parse(lines[0])
-            recordToActivityTransformation = FinancialActivityFileRecordToActivityTransformation()
             for line in lines[1:]:
                 lineRecord = self._activityLineParser.parse(line)
-                activity = recordToActivityTransformation.activityFromRecord(header, self._spec, self._activityEnrichmentSpec, lineRecord)
+                activity = self._activityFromRecord(header, lineRecord)
                 if activity.isExpense():
                     expenses.append(activity)
                 else:
                     incomes.append(activity)
         self._loadedExpenses = expenses
         self._loadedIncomes = incomes
+    
+    def _activityFromRecord(self, header, lineRecord):
+        rawDescription = self._amountColumnSpec.descriptionFromLine(header, lineRecord)
+        rawRecord = FileRawActivityRecord.withDescription(rawDescription)
+        enrichmentDefinition = self._activityEnrichmentSpec.enrichmentDefinitionForActivity(rawRecord)
+        expenseAmount = self._amountColumnSpec.expenseAmountFromLine(header, lineRecord)
+        if expenseAmount:
+            activity = self.newExpense(enrichmentDefinition, expenseAmount)
+        incomeAmount = self._amountColumnSpec.incomeAmountFromLine(header, lineRecord)
+        if incomeAmount:
+            activity = self.newIncome(enrichmentDefinition, incomeAmount)
+        return activity
+
+    def newIncome(self, enrichmentDefinition, incomeAmount):
+        return FinancialActivity.incomeWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), enrichmentDefinition.bucket(), Dollars.withAmount(incomeAmount), self)
+
+    def newExpense(self, enrichmentDefinition, expenseAmount):
+        return FinancialActivity.expenseWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), enrichmentDefinition.bucket(), Dollars.withAmount(expenseAmount), self)
+
+
+class FileRawActivityRecord():
+    
+    @classmethod
+    def withDescription(cls, description):
+        return cls(description)
+    
+    def __init__(self, description):
+        self._description = description
+    
+    def description(self):
+        return self._description
+    
 
 
 class CompositeFinancialActivitiesSource():
@@ -125,31 +156,25 @@ class CompositeFinancialActivitiesSource():
 
 
 class FinancialActivity():
+       
     @classmethod
-    def expenseWithTotal(cls, total):
-        return cls.expenseWithDescriptionAndTotal('No Description', 'Unclassified', total)
+    def expenseWithDescriptionAndTotal(cls, aDescription, aBucket, total, source):
+        return cls.withDescriptionAndTotal(aDescription, aBucket,'Expense', total, source)
+   
+    @classmethod
+    def incomeWithDescriptionAndTotal(cls, aDescription, aBucket, total, source):
+        return cls.withDescriptionAndTotal(aDescription, aBucket, 'Income', total, source)
     
     @classmethod
-    def expenseWithDescriptionAndTotal(cls, aDescription, aBucket, total):
-        return cls.withDescriptionAndTotal(aDescription, aBucket,'Expense', total)
+    def withDescriptionAndTotal(cls,description, aBucket , type, total, source):
+        return cls(description, aBucket, type, total, source)
 
-    @classmethod
-    def incomeWithTotal(cls, total):
-        return cls.incomeWithDescriptionAndTotal('No Description', 'Unclassified', total)
-    
-    @classmethod
-    def incomeWithDescriptionAndTotal(cls, aDescription, aBucket, total):
-        return cls.withDescriptionAndTotal(aDescription, aBucket, 'Income', total)
-    
-    @classmethod
-    def withDescriptionAndTotal(cls,description, aBucket , type, total):
-        return cls(description, aBucket, type, total)
-
-    def __init__(self, description, aBucket, type, total):
+    def __init__(self, description, aBucket, type, total, source):
         self._description = description
         self._bucket = aBucket
         self._total = total
         self._type = type
+        self._source = source
     
     def total(self):
         return self._total
@@ -163,21 +188,11 @@ class FinancialActivity():
     def isExpense(self):
         return self._type == 'Expense'
 
-
-class FinancialActivityFileRecordToActivityTransformation():
-
-    def activityFromRecord(self, header, spec, activityEnrichmentSpec, lineRecord):
-        rawDescription = spec.descriptionFromLine(header, lineRecord)
-        enrichmentDefinition = activityEnrichmentSpec.enrichmentDefinitionForRawDescription(rawDescription)
-        expenseAmount = spec.expenseAmountFromLine(header, lineRecord)
-        if expenseAmount:
-            return FinancialActivity.expenseWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), enrichmentDefinition.bucket(), Dollars.withAmount(expenseAmount))
-        incomeAmount = spec.incomeAmountFromLine(header, lineRecord)
-        if incomeAmount:
-            return FinancialActivity.incomeWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), enrichmentDefinition.bucket(), Dollars.withAmount(incomeAmount))
+    def sourceName(self):
+        return self._source.name()
     
 
-class SingleAmountColumnFileRecordSpec:
+class SingleAmountColumnFileRecordSpec():
     
     @classmethod
     def forSpecificColumn(cls, descriptionColumn, amountColumn):
@@ -205,7 +220,7 @@ class SingleAmountColumnFileRecordSpec:
         return float(amount) if amount else 0
 
 
-class TwoAmountColumnsFileRecordSpec:
+class TwoAmountColumnsFileRecordSpec():
 
     @classmethod
     def forColumns(cls, descriptionColumn, expenseColumn, incomeColumn):
@@ -308,7 +323,7 @@ class AmountColumnDefinition():
         return sign + '{0:.2f}'.format(activityTotal.amount())
 
 
-class CurrencyColumnDefinition:
+class CurrencyColumnDefinition():
 
     def name(self):
         return 'Currency'
@@ -317,10 +332,29 @@ class CurrencyColumnDefinition:
         return (anActivity.total().currency())
 
 
-class ActivityTypeColumnDefinition:
+class ActivityTypeColumnDefinition():
 
     def name(self):
         return 'Type'
     
     def entryFromActivity(self, anActivity):
         return 'Expense' if anActivity.isExpense() else 'Income'
+
+
+class CategoryColumnDefinition():
+
+    def name(self):
+        return 'Category'
+    
+    def entryFromActivity(self, anActivity):
+        return anActivity.category()
+
+
+class SourceNameColumnDefinition():
+
+    def name(self):
+        return 'Source'
+    
+    def entryFromActivity(self, anActivity):
+        return anActivity.sourceName()
+

@@ -64,9 +64,21 @@ class ActivityBucketedAggregation:
         for category, activities in aggregatedActivities.items():
             totalForCategory = Dollars.zero()
             for anActivity in activities: totalForCategory = totalForCategory + anActivity.total()
-            totalsAggregation[category] = FinancialActivity.expenseWithTotal(totalForCategory)
+            totalsAggregation[category] = ActivityBucket.withTotal(totalForCategory)
         return totalsAggregation
 
+
+class ActivityBucket():
+
+    @classmethod
+    def withTotal(cls,total):
+        return cls(total)
+    
+    def __init__(self, total):
+        self._total = total
+
+    def total(self):
+        return self._total
 
 class ActivityBucketDefinition:
     
@@ -92,6 +104,7 @@ class ActivityBucketDefinition:
 
     def matches(self, anActivity):
         return anActivity.category() in self._activityCategories
+
 
 class ActivityBucketingSpec:
     

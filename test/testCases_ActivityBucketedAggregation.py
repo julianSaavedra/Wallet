@@ -68,22 +68,20 @@ class ActivityBucketedAggregationTest(TestCase):
         self.assertNotIn('NoBucket', activityAggregation.keys())
 
     def testTwoExpensesAreAggregatedIntoNoBucketWithTotalOfFiveDollarsWhenNoAggregationCategoriesAreGiven(self):
-        twoDollars = self.dollars(2)
-        anExpense = self.expenseWithCategoryAndTotal('Groceries', twoDollars)
-        threeDollars = self.dollars(3)
-        anotherExpense = self.expenseWithCategoryAndTotal('Groceries', threeDollars)
-        statement = self.statementWithActivities([anExpense, anotherExpense])
+        aSource = LoadedActivitySource()
+        aSource.addExpenseWithCategoryAndDollarsAmount('Groceries', 2)
+        aSource.addExpenseWithCategoryAndDollarsAmount('Groceries', 3)
+        statement = self.statementWithSource(aSource)
         aggregationSpec = ActivityBucketedAggregation.withNoDefinitions()
         activityAggregation = statement.activityAggregationBasedOnSpec(aggregationSpec)
         fiveDollars = self.dollars(5)
         self.assertEqual(activityAggregation['NoBucket'].total(),fiveDollars)
 
     def testTwoExpensesClassifiedAsGroceriesAreBucketedIntoGroceriesWithTotalOfFiveDollarsWhenActivityCategoriesSpecIsUsed(self):
-        twoDollars = self.dollars(2)
-        anExpense = self.expenseWithCategoryAndTotal('Groceries', twoDollars)
-        threeDollars = self.dollars(3)
-        anotherExpense = self.expenseWithCategoryAndTotal('Groceries', threeDollars)
-        statement = self.statementWithActivities([anExpense, anotherExpense])
+        aSource = LoadedActivitySource()
+        aSource.addExpenseWithCategoryAndDollarsAmount('Groceries', 2)
+        aSource.addExpenseWithCategoryAndDollarsAmount('Groceries', 3)
+        statement = self.statementWithSource(aSource)
         aggregationSpec = ActivityBucketedAggregation.fromActivityCategories()
         activityAggregation = statement.activityAggregationBasedOnSpec(aggregationSpec)
         fiveDollars = self.dollars(5)
@@ -117,11 +115,12 @@ class ActivityBucketedAggregationTest(TestCase):
         self.assertBucketTotalIsZeroDollars(activityAggregation,'Medical')
 
     def testTwoDollarsCoffeeExpenseAggregatesIntoLifestyleAndAnotherFiveDollarsExpenseAggregatesToNoBucket(self):
+        aSource = LoadedActivitySource()
         twoDollars = self.dollars(2)
-        anExpense = self.expenseWithCategoryAndTotal('Coffee', twoDollars)
+        aSource.addExpenseWithCategoryAndTotal('Coffee', twoDollars)
         threeDollars = self.dollars(3)
-        anotherExpense = self.expenseWithCategoryAndTotal('Services Bill', threeDollars)
-        statement = self.statementWithActivities([anExpense, anotherExpense])
+        aSource.addExpenseWithCategoryAndTotal('Services Bill', threeDollars)
+        statement = self.statementWithSource(aSource)
         lifestyleExpensesBucketDefinition = ActivityBucketDefinition.withBucketNameAndActivityCategories('Lifestyle', ['Coffee'])
         aggregationSpec = ActivityBucketedAggregation.withDefinition(lifestyleExpensesBucketDefinition)
         activityAggregation = statement.activityAggregationBasedOnSpec(aggregationSpec)
@@ -129,11 +128,10 @@ class ActivityBucketedAggregationTest(TestCase):
         self.assertEqual(activityAggregation['NoBucket'].total(), threeDollars)
 
     def testTwoExpensesAreAggregatedIntoNoBucketWithTotalOfFiveDollarsWhenSingleLifestyleBucketDefinitionDoesNotMatch(self):
-        twoDollars = self.dollars(2)
-        anExpense = self.expenseWithCategoryAndTotal('Groceries', twoDollars)
-        threeDollars = self.dollars(3)
-        anotherExpense = self.expenseWithCategoryAndTotal('Groceries', threeDollars)
-        statement = self.statementWithActivities([anExpense, anotherExpense])
+        aSource = LoadedActivitySource()
+        aSource.addExpenseWithCategoryAndDollarsAmount('Groceries', 2)
+        aSource.addExpenseWithCategoryAndDollarsAmount('Groceries', 3)
+        statement = self.statementWithSource(aSource)
         lifestyleExpensesBucketDefinition = ActivityBucketDefinition.withBucketNameAndActivityCategories('Lifestyle', ['Coffee'])
         aggregationSpec = ActivityBucketedAggregation.withDefinition(lifestyleExpensesBucketDefinition)
         activityAggregation = statement.activityAggregationBasedOnSpec(aggregationSpec)
@@ -142,11 +140,12 @@ class ActivityBucketedAggregationTest(TestCase):
         self.assertBucketTotal(activityAggregation, 'NoBucket', fiveDollars)
 
     def testATwoDollarsExpenseGoesIntoLifestyleAndAnotherFiveDollarsExpenseGoesIntoMedical(self):
+        aSource = LoadedActivitySource()
         twoDollars = self.dollars(2)
-        anExpense = self.expenseWithCategoryAndTotal('Coffee', twoDollars)
+        aSource.addExpenseWithCategoryAndTotal('Coffee', twoDollars)
         threeDollars = self.dollars(3)
-        anotherExpense = self.expenseWithCategoryAndTotal('Pharmacy', threeDollars)
-        statement = self.statementWithActivities([anExpense, anotherExpense])
+        aSource.addExpenseWithCategoryAndTotal('Pharmacy', threeDollars)
+        statement = self.statementWithSource(aSource)
         lifestyleExpensesBucketDefinition = ActivityBucketDefinition.withBucketNameAndActivityCategories('Lifestyle', ['Coffee'])
         medicalExpensesBucketDefinition = ActivityBucketDefinition.withBucketNameAndActivityCategories('Medical', ['Pharmacy'])
         aggregationSpec = ActivityBucketedAggregation.withDefinitions([lifestyleExpensesBucketDefinition, medicalExpensesBucketDefinition])
@@ -155,11 +154,10 @@ class ActivityBucketedAggregationTest(TestCase):
         self.assertBucketTotal(activityAggregation,'Medical', threeDollars)
 
     def testTwoExpensesAreAggregatedIntoLifestyleWithTotalOfFiveDollarsAndMedicalTotalsZeroDollars(self):
-        twoDollars = self.dollars(2)
-        anExpense = self.expenseWithCategoryAndTotal('Coffee', twoDollars)
-        threeDollars = self.dollars(3)
-        anotherExpense = self.expenseWithCategoryAndTotal('Snack', threeDollars)
-        statement = self.statementWithActivities([anExpense, anotherExpense])
+        aSource = LoadedActivitySource()
+        aSource.addExpenseWithCategoryAndDollarsAmount('Coffee', 2)
+        aSource.addExpenseWithCategoryAndDollarsAmount('Snack', 3)
+        statement = self.statementWithSource(aSource)
         lifestyleExpensesBucketDefinition = ActivityBucketDefinition.withBucketNameAndActivityCategories('Lifestyle', ['Coffee', 'Snack'])
         medicalExpensesBucketDefinition = ActivityBucketDefinition.withBucketNameAndActivityCategories('Medical', ['Pharmacy'])
         aggregationSpec = ActivityBucketedAggregation.withDefinitions([lifestyleExpensesBucketDefinition, medicalExpensesBucketDefinition])
@@ -169,11 +167,10 @@ class ActivityBucketedAggregationTest(TestCase):
         self.assertBucketTotalIsZeroDollars(activityAggregation,'Medical')
 
     def testTwoExpensesAreAggregatedIntoBoBUcketWhenBothMedicalAndLifestyleBucketsDoNotMatch(self):
-        twoDollars = self.dollars(2)
-        anExpense = self.expenseWithCategoryAndTotal('Groceries', twoDollars)
-        threeDollars = self.dollars(3)
-        anotherExpense = self.expenseWithCategoryAndTotal('Sports', threeDollars)
-        statement = self.statementWithActivities([anExpense, anotherExpense])
+        aSource = LoadedActivitySource()
+        aSource.addExpenseWithCategoryAndDollarsAmount('Groceries', 2)
+        aSource.addExpenseWithCategoryAndDollarsAmount('Sports', 3)
+        statement = self.statementWithSource(aSource)
         lifestyleExpensesBucketDefinition = ActivityBucketDefinition.withBucketNameAndActivityCategories('Lifestyle', ['Coffee'])
         medicalExpensesBucketDefinition = ActivityBucketDefinition.withBucketNameAndActivityCategories('Medical', ['Pharmacy'])
         aggregationSpec = ActivityBucketedAggregation.withDefinitions([lifestyleExpensesBucketDefinition, medicalExpensesBucketDefinition])
@@ -184,13 +181,11 @@ class ActivityBucketedAggregationTest(TestCase):
         self.assertBucketTotal(activityAggregation,'NoBucket', fiveDollars)
 
     def testThreeExpensesAreAggregatedIntoEntertainmentWithTotalOfOneHundredDollars(self):
-        thirtyFiveDollars = self.dollars(35)
-        expenseA = self.expenseWithCategoryAndTotal('Jazz', thirtyFiveDollars)
-        fifteenDollars = self.dollars(15)
-        expenseB = self.expenseWithCategoryAndTotal('Movies', fifteenDollars)
-        fiftyDollars = self.dollars(50)
-        expenseC = self.expenseWithCategoryAndTotal('Theatre', fiftyDollars)
-        statement = self.statementWithActivities([expenseA, expenseB, expenseC])
+        aSource = LoadedActivitySource()
+        aSource.addExpenseWithCategoryAndDollarsAmount('Jazz', 35)
+        aSource.addExpenseWithCategoryAndDollarsAmount('Movies', 15)
+        aSource.addExpenseWithCategoryAndDollarsAmount('Theatre', 50)
+        statement = self.statementWithSource(aSource)
         entertainmentExpensesBucketDefinition = ActivityBucketDefinition.withBucketNameAndActivityCategories('Entertainment', ['Jazz', 'Movies', 'Theatre'])
         aggregationSpec = ActivityBucketedAggregation.withDefinition(entertainmentExpensesBucketDefinition)
         activityAggregation = statement.activityAggregationBasedOnSpec(aggregationSpec)
@@ -198,13 +193,11 @@ class ActivityBucketedAggregationTest(TestCase):
         self.assertBucketTotal(activityAggregation, 'Entertainment',oneHundredDollars)
 
     def testThreeExpensesGoIntoNoBucketIfSingleBucketDefinitionEntertainmentDoesNotMatch(self):
-        thirtyFiveDollars = self.dollars(35)
-        expenseA = self.expenseWithCategoryAndTotal('Jazz', thirtyFiveDollars)
-        fifteenDollars = self.dollars(15)
-        expenseB = self.expenseWithCategoryAndTotal('Movies', fifteenDollars)
-        fiftyDollars = self.dollars(50)
-        expenseC = self.expenseWithCategoryAndTotal('Theatre', fiftyDollars)
-        statement = self.statementWithActivities([expenseA, expenseB, expenseC])
+        aSource = LoadedActivitySource()
+        aSource.addExpenseWithCategoryAndDollarsAmount('Jazz', 35)
+        aSource.addExpenseWithCategoryAndDollarsAmount('Movies', 15)
+        aSource.addExpenseWithCategoryAndDollarsAmount('Theatre', 50)
+        statement = self.statementWithSource(aSource)
         lifestyleExpensesBucketDefinition = ActivityBucketDefinition.withBucketNameAndActivityCategories('Lifestyle', ['Coffee'])
         aggregationSpec = ActivityBucketedAggregation.withDefinition(lifestyleExpensesBucketDefinition)
         activityAggregation = statement.activityAggregationBasedOnSpec(aggregationSpec)
@@ -220,26 +213,22 @@ class ActivityBucketedAggregationTest(TestCase):
     def dollars(self, aTotalAmountInDollars):
         return Dollars.withAmount(aTotalAmountInDollars)
 
-    def expenseWithCategoryAndTotal(self, aCategory, aTotal):
-        return FinancialActivity.expenseWithDescriptionAndTotal('Description', aCategory, aTotal)
-
     def emptyStatement(self):
-        return self.statementWithActivities([])
+        return self.statementWithSource(self.emptySource())
 
     def statementWithSingleActivityWithTotal(self, aTotal):
-        anExpense = self.expenseWithCategoryAndTotal('Category', aTotal)
-        aSource = LoadedActivitySource.withActivity(anExpense)
-        return FinancialActivityStatement.fromSingleSource(aSource)
+        return self.statementWithSingleActivityWithCategoryAndTotal('Category', aTotal)
 
     def statementWithSingleActivityWithCategoryAndTotal(self, aCategory, aTotal):
-        anExpense = self.expenseWithCategoryAndTotal(aCategory, aTotal)
-        aSource = LoadedActivitySource.withActivity(anExpense)
+        aSource = self.emptySource()
+        aSource.addExpenseWithCategoryAndTotal(aCategory, aTotal)
         return FinancialActivityStatement.fromSingleSource(aSource)
 
-    def statementWithActivities(self, activities):
-        aSource = LoadedActivitySource.withActivities(activities)
-        statement = FinancialActivityStatement.fromSingleSource(aSource)
-        return statement
+    def emptySource(self):
+        return LoadedActivitySource()
+
+    def statementWithSource(self, aSource):
+        return FinancialActivityStatement.fromSingleSource(aSource)
 
     def assertBucketTotalIsZeroDollars(self, activityAggregation, bucket):
         self.assertBucketTotal(activityAggregation, bucket, Dollars.zero())

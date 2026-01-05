@@ -63,19 +63,6 @@ class ActivityAggregationDefinition:
     def matches(self, anActivity):
         return self._condition.satisfies(anActivity)
 
-
-class RawActivityRecord():
-    
-    @classmethod
-    def withDescription(cls, description):
-        return cls(description)
-    
-    def __init__(self, description):
-        self._description = description
-    
-    def description(self):
-        return self._description
-
 class ActivityEnrichmentSpec():
      
     @classmethod
@@ -89,11 +76,10 @@ class ActivityEnrichmentSpec():
     def __init__(self, definitions):
         self._definitions = definitions
         
-    def enrichmentDefinitionForRawDescription(self, rawDescription):
-        rawRecord = RawActivityRecord.withDescription(rawDescription)
+    def enrichmentDefinitionForActivity(self, anActivity):
         for aDefinition in self._definitions:
-            if aDefinition.matches(rawRecord): return aDefinition
-        return ActivityEnrichmentSpecDefinition.withBucketDescriptionOverrideAndCondition('Unclassified', rawDescription, None)
+            if aDefinition.matches(anActivity): return aDefinition
+        return ActivityEnrichmentSpecDefinition.withBucketDescriptionOverrideAndCondition('Unclassified', anActivity.description(), None)
 
     def allBuckets(self):
         return [aDefinition.bucket() for aDefinition in self._definitions]

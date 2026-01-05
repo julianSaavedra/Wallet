@@ -3,8 +3,8 @@ from unittest import TestCase
 from src.model import Dollars, FinancialActivityStatement, FinancialActivity, FinancialActivityFileSource
 from src.model import FinancialActivityFileLineParser, SingleAmountColumnFileRecordSpec, TwoAmountColumnsFileRecordSpec
 from src.model_activityEnrichment import ActivityEnrichmentSpecBuilder
-from src.model import FinancialActivityStatementExporter, DescriptionColumnDefinition, AmountColumnDefinition, CurrencyColumnDefinition
-from src.model import ActivityTypeColumnDefinition
+from src.model import FinancialActivityStatementExporter, DescriptionColumnDefinition, AmountColumnDefinition
+from src.model import ActivityTypeColumnDefinition, CurrencyColumnDefinition, CategoryColumnDefinition, SourceNameColumnDefinition
 from src.model import CompositeFinancialActivitiesSource
 from test.testSupport import LoadedActivitySource, TestFile
 
@@ -28,11 +28,10 @@ class FinancialActivityStatementTest(TestCase):
         tenDollars = self.dollars(10)
         twoDollars = self.dollars(2)
         fiveDollars = self.dollars(5)
-        expenses = self.expensesFromAmounts([tenDollars, twoDollars, fiveDollars])
-        aSource = self.sourceWithActivities(expenses)
+        aSource = self.sourceWithExpensesFromAmounts([tenDollars, twoDollars, fiveDollars])
         statement = FinancialActivityStatement.fromSingleSource(aSource)
         statementExpenses = statement.expenses()
-        self.assertListEqual(statementExpenses, expenses)
+        self.assertListEqual(statementExpenses, aSource.expenses())
     
     def testTotalIncomeFromStatementWithSourceWithNoIncomesIsZeroDollars(self):
         aSource = LoadedActivitySource()
@@ -61,11 +60,10 @@ class FinancialActivityStatementTest(TestCase):
         twoDollars = self.dollars(2)
         fiveDollars = self.dollars(5)
         sevenDollars = self.dollars(7)
-        incomes = self.incomesFromAmounts([tenDollars, twoDollars, fiveDollars, sevenDollars])
-        aSource = self.sourceWithActivities(incomes)
+        aSource = self.sourceWithIncomesFromAmounts([tenDollars, twoDollars, fiveDollars, sevenDollars])
         statement = FinancialActivityStatement.fromSingleSource(aSource)
         statementIncomes = statement.incomes()
-        self.assertListEqual(statementIncomes, incomes)
+        self.assertListEqual(statementIncomes, aSource.incomes())
 
     def zeroDollars(self):
         return Dollars.zero()
@@ -80,23 +78,10 @@ class FinancialActivityStatementTest(TestCase):
         return self.sourceWithIncomesFromAmounts([anAmount])
 
     def sourceWithExpensesFromAmounts(self, amounts):
-        expenses = self.expensesFromAmounts(amounts)
-        return self.sourceWithActivities(expenses)
-
-    def expensesFromAmounts(self, amounts):
-        return [FinancialActivity.expenseWithTotal(anAmount) for anAmount in amounts]
-    
-    def incomesFromAmounts(self, amounts):
-        return [FinancialActivity.incomeWithTotal(anAmount) for anAmount in amounts]
+        return LoadedActivitySource.withExpensesFromAmounts(amounts)
 
     def sourceWithIncomesFromAmounts(self, amounts):
-        incomes = self.incomesFromAmounts(amounts)
-        return self.sourceWithActivities(incomes)
-
-    def sourceWithActivities(self, activites):
-        aSource = LoadedActivitySource()
-        aSource.addActivities(activites)
-        return aSource
+        return LoadedActivitySource.withIncomesFromAmounts(amounts)
 
 
 class FinancialActivityFileSourceTest(TestCase):
@@ -644,6 +629,30 @@ class FinancialActivityStatementExporterTest(TestCase):
             "Description,Type",
             'Salary-Work,Income'])
 
+    def testExportIncludesColumnCategoryShowingGroceriesForAnExpenseActivity(self):
+        aSource = LoadedActivitySource()
+        aSource.addExpenseWithDescriptionCategoryAndDollarsAmount('MarketABC', 'Groceries', 6.78)
+        statement = FinancialActivityStatement.fromSingleSource(aSource)
+        columnDefinitions = [DescriptionColumnDefinition(), AmountColumnDefinition(), CategoryColumnDefinition()]
+        exporter = FinancialActivityStatementExporter.withColumnDefinitions(columnDefinitions)
+        exportedFile = TestFile()
+        exporter.exportStatementIntoFile(statement, exportedFile)
+        self.assertExportedLines(exportedFile, [
+            "Description,Amount,Category",
+            'MarketABC,-6.78,Groceries'])
+    
+    def testExportIncludesColumnSourceShowingCashAccountForAnIncomeActivity(self):
+        aSource = LoadedActivitySource.withName('CashAccount')
+        aSource.addIncomeWithDescriptionAndDollarsAmount('Salary-Work', 2000)
+        statement = FinancialActivityStatement.fromSingleSource(aSource)
+        columnDefinitions = [DescriptionColumnDefinition(), SourceNameColumnDefinition()]
+        exporter = FinancialActivityStatementExporter.withColumnDefinitions(columnDefinitions)
+        exportedFile = TestFile()
+        exporter.exportStatementIntoFile(statement, exportedFile)
+        self.assertExportedLines(exportedFile, [
+            "Description,Source",
+            'Salary-Work,CashAccount'])
+    
     def assertEmpty(self, aCollection):
         self.assertEqual(len(aCollection),0)
     

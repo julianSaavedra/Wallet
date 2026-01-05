@@ -14,19 +14,55 @@ class LoadedActivitySource():
         for anActivity in activities: source.addActivity(anActivity)
         return source
 
-    def __init__(self):
+    @classmethod
+    def withExpensesFromAmounts(cls, amounts):
+        source = cls()
+        for anAmount in amounts: source.addExpenseWithAmount(anAmount)
+        return source
+    
+    @classmethod
+    def withIncomesFromAmounts(cls, amounts):
+        source = cls()
+        for anAmount in amounts: source.addIncomeWithAmount(anAmount)
+        return source
+    
+    @classmethod
+    def withName(cls, name):
+        return cls(name)
+
+    def __init__(self, name = 'LoadedSource'):
+        self._name = name
         self._expenses = []
         self._incomes = []
 
     def addExpenseWithDescription(self, aDescription):
         self.addExpenseWithDescriptionAndDollarsAmount(aDescription,1)
-    
-    def addExpenseWithDescriptionAndDollarsAmount(self, aDescription, dollarsAmount):
-        newExpense = FinancialActivity.expenseWithDescriptionAndTotal(aDescription, "NoBucket", Dollars.withAmount(dollarsAmount))
+
+    def addExpenseWithAmount(self, anAmount):
+        newExpense = FinancialActivity.expenseWithDescriptionAndTotal('Description', 'NoCategory', anAmount, self)
         self.addExpense(newExpense)
 
+    def addExpenseWithCategoryAndDollarsAmount(self, category, dollarsAmount):
+        total = Dollars.withAmount(dollarsAmount)
+        return self.addExpenseWithCategoryAndTotal(category, total)
+
+    def addExpenseWithCategoryAndTotal(self, category, total):
+        newExpense = FinancialActivity.expenseWithDescriptionAndTotal('Description', category, total, self)
+        self.addExpense(newExpense)
+
+    def addExpenseWithDescriptionCategoryAndDollarsAmount(self, aDescription, aCategory, dollarsAmount):
+        newExpense = FinancialActivity.expenseWithDescriptionAndTotal(aDescription, aCategory, Dollars.withAmount(dollarsAmount), self)
+        self.addExpense(newExpense)
+
+    def addExpenseWithDescriptionAndDollarsAmount(self, aDescription, dollarsAmount):
+       self.addExpenseWithDescriptionCategoryAndDollarsAmount(aDescription, 'NoCategory', dollarsAmount)
+
+    def addIncomeWithAmount(self, anAmount):
+        newIncome = FinancialActivity.incomeWithDescriptionAndTotal('Description', 'NoCategory', anAmount, self)
+        self.addIncome(newIncome)
+
     def addIncomeWithDescriptionAndDollarsAmount(self, aDescription, dollarsAmount):
-        newIncome = FinancialActivity.incomeWithDescriptionAndTotal(aDescription, "NoBucket", Dollars.withAmount(dollarsAmount))
+        newIncome = FinancialActivity.incomeWithDescriptionAndTotal(aDescription, 'NoCategory', Dollars.withAmount(dollarsAmount), self)
         self.addIncome(newIncome)
 
     def addActivity(self, anActivity):
@@ -47,7 +83,11 @@ class LoadedActivitySource():
 
     def incomes(self):
         return self._incomes
-    
+
+    def name(self):
+        return self._name
+
+
 class TestFile():
     def __init__(self):
         self._content = ''
