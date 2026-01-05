@@ -26,8 +26,8 @@ class LoadedActivitySource():
         self.addExpense(newExpense)
 
     def addIncomeWithDescriptionAndDollarsAmount(self, aDescription, dollarsAmount):
-        newExpense = FinancialActivity.incomeWithDescriptionAndTotal(aDescription, "NoBucket", Dollars.withAmount(dollarsAmount))
-        self.addIncome(newExpense)
+        newIncome = FinancialActivity.incomeWithDescriptionAndTotal(aDescription, "NoBucket", Dollars.withAmount(dollarsAmount))
+        self.addIncome(newIncome)
 
     def addActivity(self, anActivity):
         if anActivity.isExpense(): self.addExpense(anActivity)

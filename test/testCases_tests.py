@@ -100,6 +100,7 @@ class FinancialActivityStatementTest(TestCase):
 
 
 class FinancialActivityFileSourceTest(TestCase):
+
     def testNoExpensesAreImportedFromEmptyFile(self):
         aFile = self.emptyFile()
         parser = FinancialActivityFileLineParser.commaSeparatedValues()
@@ -198,6 +199,7 @@ class FinancialActivityFileSourceTest(TestCase):
         activityEnrichmentSpec = self.emptyActivityEnrichmentSpec()
         aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
         expenses = aSource.expenses()
+        self.assertActivitiesQuantity(expenses, 1)
         self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'Subway', 3)
     
     def testSingleIncomeOfFiveDollarsIsImportedFromFileWithSingleAmountColumn(self):
@@ -209,6 +211,7 @@ class FinancialActivityFileSourceTest(TestCase):
         activityEnrichmentSpec = self.emptyActivityEnrichmentSpec()
         aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
         incomes = aSource.incomes()
+        self.assertActivitiesQuantity(incomes, 1)
         self.assertActivityWithDescriptionAndTotalInDollars(incomes, 'Payment', 5)
     
     def testTwoIncomesOfTwoAndFourDollarsAndTwoExpensesOfThreeAndFiveAreImportedFromFileWithSingleAmountColumn(self):
@@ -238,8 +241,9 @@ class FinancialActivityFileSourceTest(TestCase):
         activityEnrichmentSpec = self.emptyActivityEnrichmentSpec()
         aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
         expenses = aSource.expenses()
-        self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'PayAPP MarketABC NY #R#', 3)
-
+        self.assertActivitiesQuantity(expenses, 1)
+        self.assertActivityDescription(expenses[0], 'PayAPP MarketABC NY #R#')
+    
     def testSingleExpenseCategoryIsSourcedAsUnclassifiedIfNoActivityRefinementSpecIsGiven(self):
         lines = ['Date,Description,Card Member,Account #,Amount',
                  '12/05/2024,PayAPP MarketABC NY #R#,Name LastName,-12345,3.00',]
@@ -249,7 +253,8 @@ class FinancialActivityFileSourceTest(TestCase):
         activityEnrichmentSpec = self.emptyActivityEnrichmentSpec()
         aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
         expenses = aSource.expenses()
-        self.assertEqual(expenses[0].category(), 'Unclassified')
+        self.assertActivitiesQuantity(expenses, 1)
+        self.assertActivityDescriptionAndCategory(expenses[0], 'PayAPP MarketABC NY #R#', 'Unclassified')
     
     def testSingleExpenseDescriptionIsSourcedAsMarketABCIfActivityRefinementSpecIsGiven(self):
         lines = ['Date,Description,Card Member,Account #,Amount',
@@ -262,7 +267,7 @@ class FinancialActivityFileSourceTest(TestCase):
         activityEnrichmentSpec = specBuilder.fullSpec()
         aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
         expenses = aSource.expenses()
-        self.assertActivityWithDescriptionAndTotalInDollars(expenses, 'MarketABC', 3)
+        self.assertActivityDescription(expenses[0], 'MarketABC')
     
     def testSingleExpenseCategoryIsSourcedAsGroceriesIfActivityRefinementSpecIsGiven(self):
         lines = ['Date,Description,Card Member,Account #,Amount',
@@ -275,8 +280,116 @@ class FinancialActivityFileSourceTest(TestCase):
         activityEnrichmentSpec = specBuilder.fullSpec()
         aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
         expenses = aSource.expenses()
-        self.assertEqual(expenses[0].category(), 'Groceries')
+        self.assertActivityDescriptionAndCategory(expenses[0], 'MarketABC', 'Groceries')
+
+    def testTwoExpensesAreSourcedWithSameDescriptionAsFileIfNoActivityRefinementSpecIsGiven(self):
+        lines = ['Date,Description,Card Member,Account #,Amount',
+                 '12/05/2024,PayAPP Markt#ABC NY #R#,Name LastName,-12345,3.00',
+                 '14/05/2024,Elect**Co** NY,Name LastName,-12345,50.00',]
+        aFile = self.fileWithGivenLines(lines)
+        spec = SingleAmountColumnFileRecordSpec.forSpecificColumn(descriptionColumn = 'Description', amountColumn = 'Amount')
+        parser = FinancialActivityFileLineParser.commaSeparatedValues()
+        activityEnrichmentSpec = self.emptyActivityEnrichmentSpec()
+        aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
+        expenses = aSource.expenses()
+        self.assertActivityDescription(expenses[0], 'PayAPP Markt#ABC NY #R#')
+        self.assertActivityDescription(expenses[1], 'Elect**Co** NY')
+
+    def testTwoExpensesCategoriesAreSourcedAsUnclassifiedIfNoActivityRefinementSpecIsGiven(self):
+        lines = ['Date,Description,Card Member,Account #,Amount',
+                 '12/05/2024,PayAPP Markt#ABC NY #R#,Name LastName,-12345,3.00',
+                 '14/05/2024,Elect**Co** NY,Name LastName,-12345,50.00',]
+        aFile = self.fileWithGivenLines(lines)
+        spec = SingleAmountColumnFileRecordSpec.forSpecificColumn(descriptionColumn = 'Description', amountColumn = 'Amount')
+        parser = FinancialActivityFileLineParser.commaSeparatedValues()
+        activityEnrichmentSpec = self.emptyActivityEnrichmentSpec()
+        aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
+        expenses = aSource.expenses()
+        self.assertActivityDescriptionAndCategory(expenses[0], 'PayAPP Markt#ABC NY #R#', 'Unclassified')
+        self.assertActivityDescriptionAndCategory(expenses[1], 'Elect**Co** NY', 'Unclassified')
     
+    def testTwoExpensesCategoriesAreSourcedAsGroceriesIfActivityRefinementSpecIsGiven(self):
+        lines = ['Date,Description,Card Member,Account #,Amount',
+                 '12/05/2024,PayAPP Markt#ABC NY #R#,Name LastName,-12345,3.00',
+                 '14/05/2024,PayAPP Markt#ABC NY #R#,Name LastName,-12345,50.00',]
+        aFile = self.fileWithGivenLines(lines)
+        spec = SingleAmountColumnFileRecordSpec.forSpecificColumn(descriptionColumn = 'Description', amountColumn = 'Amount')
+        parser = FinancialActivityFileLineParser.commaSeparatedValues()
+        specBuilder = ActivityEnrichmentSpecBuilder()
+        specBuilder.addDefintionSpecForDescriptionIncludingString('Groceries', 'MarketABC','Markt#ABC')
+        activityEnrichmentSpec = specBuilder.fullSpec()
+        aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
+        expenses = aSource.expenses()
+        self.assertActivityDescriptionAndCategory(expenses[0], 'MarketABC', 'Groceries')
+        self.assertActivityDescriptionAndCategory(expenses[1], 'MarketABC', 'Groceries')
+    
+    def testTwoExpensesCategoriesAreSourcedAsGroceriesAndElectricityIfActivityRefinementSpecIsGiven(self):
+        lines = ['Date,Description,Card Member,Account #,Amount',
+                 '12/05/2024,PayAPP Markt#ABC NY #R#,Name LastName,-12345,3.00',
+                 '14/05/2024,Elect**Co** NY,Name LastName,-12345,50.00',]
+        aFile = self.fileWithGivenLines(lines)
+        spec = SingleAmountColumnFileRecordSpec.forSpecificColumn(descriptionColumn = 'Description', amountColumn = 'Amount')
+        parser = FinancialActivityFileLineParser.commaSeparatedValues()
+        specBuilder = ActivityEnrichmentSpecBuilder()
+        specBuilder.addDefintionSpecForDescriptionIncludingString('Groceries', 'MarketABC','Markt#ABC')
+        specBuilder.addDefintionSpecForDescriptionIncludingString('Electricity', 'ElectricCompany','Elect**Co** NY')
+        activityEnrichmentSpec = specBuilder.fullSpec()
+        aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
+        expenses = aSource.expenses()
+        self.assertActivityDescriptionAndCategory(expenses[0], 'MarketABC', 'Groceries')
+        self.assertActivityDescriptionAndCategory(expenses[1], 'ElectricCompany', 'Electricity')
+
+    def testThreeExpensesWithDifferentRawDescriptionsAreClassifiedIntoGroceries(self):
+        lines = ['Date,Description,Card Member,Account #,Amount',
+                 '12/05/2024,PayAPP Markt#ABC NY #R#,Name LastName,-12345,3.00',
+                 '14/05/2024,PayAPP XYZ#Fresh NY #R#,Name LastName,-12345,50.00',
+                 '21/05/2024,PayAPP Goods#4#You NY #R#,Name LastName,-12345,27.00',]
+        aFile = self.fileWithGivenLines(lines)
+        spec = SingleAmountColumnFileRecordSpec.forSpecificColumn(descriptionColumn = 'Description', amountColumn = 'Amount')
+        parser = FinancialActivityFileLineParser.commaSeparatedValues()
+        specBuilder = ActivityEnrichmentSpecBuilder()
+        specBuilder.addDefintionSpecForDescriptionIncludingString('Groceries', 'MarketABC','Markt#ABC')
+        specBuilder.addDefintionSpecForDescriptionIncludingString('Groceries', 'XYZ_Fresh','XYZ#Fresh')
+        specBuilder.addDefintionSpecForDescriptionIncludingString('Groceries', 'Goods_4_You','Goods#4#You')
+        activityEnrichmentSpec = specBuilder.fullSpec()
+        aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
+        expenses = aSource.expenses()
+        self.assertActivityDescriptionAndCategory(expenses[0], 'MarketABC', 'Groceries')
+        self.assertActivityDescriptionAndCategory(expenses[1], 'XYZ_Fresh', 'Groceries')
+        self.assertActivityDescriptionAndCategory(expenses[2], 'Goods_4_You', 'Groceries')
+    
+    def testThreeExpensesWithDifferentRawDescriptionsAreSourcedWithSameDescrittionAndClassification(self):
+        lines = ['Date,Description,Card Member,Account #,Amount',
+                 '12/05/2024,PayAPP MarKT#ABC#UpperWest NY #R#,Name LastName,-12345,3.00',
+                 '14/05/2024,PayAPP MarKetT#AbC#UpperEast NY #R#,Name LastName,-12345,50.00',
+                 '21/05/2024,PayAPP MKT#ABc#Tribeca NY #R#,Name LastName,-12345,27.00',]
+        aFile = self.fileWithGivenLines(lines)
+        spec = SingleAmountColumnFileRecordSpec.forSpecificColumn(descriptionColumn = 'Description', amountColumn = 'Amount')
+        parser = FinancialActivityFileLineParser.commaSeparatedValues()
+        marketABCRawDescriptions = ['MarKT#ABC#UpperWest', 'MarKetT#AbC#UpperEast', 'MKT#ABc#Tribeca']
+        specBuilder = ActivityEnrichmentSpecBuilder()
+        specBuilder.addDefintionSpecForDescriptionIncludingAnyOfGivenStrings('Groceries', 'MarketABC', marketABCRawDescriptions)
+        activityEnrichmentSpec = specBuilder.fullSpec()
+        aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
+        expenses = aSource.expenses()
+        self.assertActivityDescriptionCategoryAndTotalInDollars(expenses[0], 'MarketABC', 'Groceries', 3)
+        self.assertActivityDescriptionCategoryAndTotalInDollars(expenses[1], 'MarketABC', 'Groceries', 50)
+        self.assertActivityDescriptionCategoryAndTotalInDollars(expenses[2], 'MarketABC', 'Groceries', 27)
+
+    def testSingleExpenseDescriptionIsSourcedAsMarketABCIfActivityRefinementSpecIsGivenUsingPlugableCondition(self):
+        lines = ['Date,Description,Card Member,Account #,Amount',
+                 '12/05/2024,PayAPP Markt#ABC NY #R#,Name LastName,-12345,3.00',]
+        aFile = self.fileWithGivenLines(lines)
+        spec = SingleAmountColumnFileRecordSpec.forSpecificColumn(descriptionColumn = 'Description', amountColumn = 'Amount')
+        parser = FinancialActivityFileLineParser.commaSeparatedValues()
+        marketABCCondition = lambda anActivity: 'Markt#ABC' in anActivity.description()
+        specBuilder = ActivityEnrichmentSpecBuilder()
+        specBuilder.addDefintionSpecForCodeBasedCondition('Groceries', 'MarketABC', marketABCCondition)
+        activityEnrichmentSpec = specBuilder.fullSpec()
+        aSource = FinancialActivityFileSource.fromFile(aFile, spec, parser, activityEnrichmentSpec)
+        expenses = aSource.expenses()
+        self.assertActivityDescription(expenses[0], 'MarketABC')
+
     def assertActivitiesQuantity(self, activities, expectedSize):
         self.assertEqual(len(activities), expectedSize)
     
@@ -290,6 +403,34 @@ class FinancialActivityFileSourceTest(TestCase):
             matchingActivityWasFound = matchingActivityWasFound or currentActivityMatches
         self.assertTrue(matchingActivityWasFound, 'No matching activity with expected description and total')
     
+    def assertActivityDescription(self, anActivity, expectedDescription):
+        self.assertEqual(anActivity.description(), expectedDescription)
+
+    def assertActivityCategory(self, anActivity, expectedCategory):
+        self.assertEqual(anActivity.category(), expectedCategory)
+
+    def assertActivityTotal(self, anActivity, expectedDollarAmount):
+        expectedActivityTotal = Dollars.withAmount(expectedDollarAmount)
+        self.assertEqual(anActivity.total(), expectedActivityTotal)
+
+    def assertActivityDescriptionAndCategory(self, anActivity, expectedDescription, expectedCategory):
+        self.assertActivityDescription(anActivity, expectedDescription)
+        self.assertActivityCategory(anActivity, expectedCategory)
+
+    def assertActivityDescriptionCategoryAndTotalInDollars(self, anActivity, expectedDescription, expectedCategory, expectedDollarAmount):
+        self.assertActivityDescription(anActivity, expectedDescription)
+        self.assertActivityCategory(anActivity, expectedCategory)
+        self.assertActivityTotal(anActivity, expectedDollarAmount)
+
+    def assertActivityWithDescriptionAndCategory(self, activities, aDescription, aCategory):
+        matchingActivityWasFound = False
+        for anActivity in activities:
+            currentActivityMatchesDescription = anActivity.description() == aDescription
+            currentActivityMatchesTotal = anActivity.category() == aCategory
+            currentActivityMatches = currentActivityMatchesDescription and currentActivityMatchesTotal
+            matchingActivityWasFound = matchingActivityWasFound or currentActivityMatches
+        self.assertTrue(matchingActivityWasFound, 'No matching activity with expected description and category')
+
     def assertAllAndOnlyTotalsInDollars(self, activities, expectedDollarAmounts):
         self.assertEqual(len(activities), len(expectedDollarAmounts))
         for activity , expectedDollarAmount in zip(activities, expectedDollarAmounts):
@@ -306,6 +447,19 @@ class FinancialActivityFileSourceTest(TestCase):
     def emptyActivityEnrichmentSpec(self):
         specBuilder = ActivityEnrichmentSpecBuilder()
         return specBuilder.fullSpec()
+
+
+class ActivityEnrichmentSpecBuilderTest(TestCase):  
+
+    def testBucketNameCannotBeEmpty(self):
+        specBuilder = ActivityEnrichmentSpecBuilder()
+        with self.assertRaisesRegex(Exception, 'Bucket name cannot be empty'):
+            specBuilder.addDefintionSpecForDescriptionIncludingString('', 'DescriptionOverride','StringInDescription')
+
+    def testStringInActivityDescriptionInclusionConditionCannotBeEmpty(self):
+        specBuilder = ActivityEnrichmentSpecBuilder()
+        with self.assertRaisesRegex(Exception, 'String to search for cannot be empty'):
+            specBuilder.addDefintionSpecForDescriptionIncludingString('Bucket', 'DescriptionOverride','')
 
 
 class FinancialActivityFileLineParserTest(TestCase):

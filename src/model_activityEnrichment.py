@@ -64,30 +64,6 @@ class ActivityAggregationDefinition:
         return self._condition.satisfies(anActivity)
 
 
-class EnrichedActivity():
-
-    @classmethod
-    def withDescriptionAndBucket(cls, description, bucket, basedActivity):
-        return cls(description, bucket, basedActivity)
-    
-    def __init__(self, description, bucket, basedActivity):
-        self._description = description
-        self._bucket = bucket
-        self._basedActivity = basedActivity
-
-    def description(self):
-        return self._description
-    
-    def bucket(self):
-        return self._bucket
-
-    def category(self):
-        return self.bucket()
-
-    def total(self):
-        return self._basedActivity.total()
-
-
 class RawActivityRecord():
     
     @classmethod
@@ -113,17 +89,11 @@ class ActivityEnrichmentSpec():
     def __init__(self, definitions):
         self._definitions = definitions
         
-    def enrichmentDefinitionForRawDescription(self, aRawDescription):
-        rawRecord = RawActivityRecord.withDescription(aRawDescription)
+    def enrichmentDefinitionForRawDescription(self, rawDescription):
+        rawRecord = RawActivityRecord.withDescription(rawDescription)
         for aDefinition in self._definitions:
             if aDefinition.matches(rawRecord): return aDefinition
-        return ActivityEnrichmentSpecDefinition.withBucketDescriptionOverrideAndCondition('Unclassified', aRawDescription, None)
-
-    def newEnrichedActivity(self, anActivity):
-        rawDescription = anActivity.description()
-        definition = self.enrichmentDefinitionForRawDescription(rawDescription)
-        bucket = definition.bucket()
-        return EnrichedActivity.withDescriptionAndBucket(rawDescription, bucket, anActivity)
+        return ActivityEnrichmentSpecDefinition.withBucketDescriptionOverrideAndCondition('Unclassified', rawDescription, None)
 
     def allBuckets(self):
         return [aDefinition.bucket() for aDefinition in self._definitions]
@@ -166,7 +136,7 @@ class ActivityEnrichmentSpecBuilder():
         self.addNewDefinition(aDefinition)
     
     def addDefintionSpecForCodeBasedCondition(self, bucket, descriptionOverride, conditionCode):
-        condition = ActivityPluggableCondition.usingCode(lambda anActivity: False)
+        condition = ActivityPluggableCondition.usingCode(conditionCode)
         aDefinition = ActivityEnrichmentSpecDefinition.withBucketDescriptionOverrideAndCondition(bucket, descriptionOverride, condition)
         self.addNewDefinition(aDefinition)
 
@@ -177,12 +147,7 @@ class ActivityEnrichmentSpecBuilder():
         self.addNewDefinition(aDefinition)
 
     def addNewDefinition(self, aDefinition):
-        self.assertBucketDoesNotExistsYet(aDefinition)
         self._definitions.append(aDefinition)
-    
-    def assertBucketDoesNotExistsYet(self, aDefinition):
-        existingBuckets = self.fullSpec().allBuckets()
-        if aDefinition.bucket() in  existingBuckets: raise Exception('Definition for same bucket already exists')
 
     def fullSpec(self):
         return ActivityEnrichmentSpec.withDefinitions(self._definitions) 
