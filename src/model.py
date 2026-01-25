@@ -68,10 +68,16 @@ class FinancialActivityStatement():
 
 class FinancialActivityFileSource():
     @classmethod
-    def fromFile(cls, file, amountColumnSpec, activityLineParser, activityEnrichmentSpec):
-        return cls(file, amountColumnSpec, activityLineParser, activityEnrichmentSpec)
+    def fromFile(cls, name, file, amountColumnSpec, activityLineParser, activityEnrichmentSpec):
+        cls.assertName(name)
+        return cls(name, file, amountColumnSpec, activityLineParser, activityEnrichmentSpec)
     
-    def __init__(self, file, amountColumnSpec, activityLineParser,activityEnrichmentSpec):
+    @classmethod
+    def assertName(cls, name):
+        if not name: raise Exception('Source name cannot be empty')
+
+    def __init__(self, name, file, amountColumnSpec, activityLineParser,activityEnrichmentSpec):
+        self._name = name
         self._file = file
         self._amountColumnSpec = amountColumnSpec
         self._activityLineParser = activityLineParser
@@ -86,7 +92,10 @@ class FinancialActivityFileSource():
     def incomes(self):
         if not self._loadedIncomes: self._loadActivityFromFile()
         return self._loadedIncomes
-        
+    
+    def name(self):
+        return self._name
+
     def _loadActivityFromFile(self):
         expenses = []
         incomes = []
@@ -109,17 +118,17 @@ class FinancialActivityFileSource():
         enrichmentDefinition = self._activityEnrichmentSpec.enrichmentDefinitionForActivity(rawRecord)
         expenseAmount = self._amountColumnSpec.expenseAmountFromLine(header, lineRecord)
         if expenseAmount:
-            activity = self.newExpense(enrichmentDefinition, expenseAmount)
+            activity = self._newExpense(rawDescription, enrichmentDefinition, expenseAmount)
         incomeAmount = self._amountColumnSpec.incomeAmountFromLine(header, lineRecord)
         if incomeAmount:
-            activity = self.newIncome(enrichmentDefinition, incomeAmount)
+            activity = self._newIncome(rawDescription, enrichmentDefinition, incomeAmount)
         return activity
 
-    def newIncome(self, enrichmentDefinition, incomeAmount):
-        return FinancialActivity.incomeWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), enrichmentDefinition.bucket(), Dollars.withAmount(incomeAmount), self)
+    def _newIncome(self, rawDescription, enrichmentDefinition, incomeAmount):
+        return FinancialActivity.incomeWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), rawDescription, enrichmentDefinition.bucket(), Dollars.withAmount(incomeAmount), self)
 
-    def newExpense(self, enrichmentDefinition, expenseAmount):
-        return FinancialActivity.expenseWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), enrichmentDefinition.bucket(), Dollars.withAmount(expenseAmount), self)
+    def _newExpense(self, rawDescription, enrichmentDefinition, expenseAmount):
+        return FinancialActivity.expenseWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), rawDescription, enrichmentDefinition.bucket(), Dollars.withAmount(expenseAmount), self)
 
 
 class FileRawActivityRecord():
@@ -158,20 +167,21 @@ class CompositeFinancialActivitiesSource():
 class FinancialActivity():
        
     @classmethod
-    def expenseWithDescriptionAndTotal(cls, aDescription, aBucket, total, source):
-        return cls.withDescriptionAndTotal(aDescription, aBucket,'Expense', total, source)
+    def expenseWithDescriptionAndTotal(cls, aDescription, aRawDescription, aCategory, total, source):
+        return cls.withDescriptionAndTotal(aDescription, aRawDescription, aCategory,'Expense', total, source)
    
     @classmethod
-    def incomeWithDescriptionAndTotal(cls, aDescription, aBucket, total, source):
-        return cls.withDescriptionAndTotal(aDescription, aBucket, 'Income', total, source)
+    def incomeWithDescriptionAndTotal(cls, aDescription, aRawDescription, aCategory, total, source):
+        return cls.withDescriptionAndTotal(aDescription, aRawDescription, aCategory, 'Income', total, source)
     
     @classmethod
-    def withDescriptionAndTotal(cls,description, aBucket , type, total, source):
-        return cls(description, aBucket, type, total, source)
+    def withDescriptionAndTotal(cls,description, rawDescription, aCategory , type, total, source):
+        return cls(description, rawDescription, aCategory, type, total, source)
 
-    def __init__(self, description, aBucket, type, total, source):
+    def __init__(self, description, rawDescription, aCategory, type, total, source):
         self._description = description
-        self._bucket = aBucket
+        self._rawDescription = rawDescription 
+        self._category = aCategory
         self._total = total
         self._type = type
         self._source = source
@@ -183,13 +193,16 @@ class FinancialActivity():
         return self._description
     
     def category(self):
-        return self._bucket
+        return self._category
     
     def isExpense(self):
         return self._type == 'Expense'
 
     def sourceName(self):
         return self._source.name()
+    
+    def rawDescription(self):
+        return self._rawDescription
     
 
 class SingleAmountColumnFileRecordSpec():
@@ -358,3 +371,11 @@ class SourceNameColumnDefinition():
     def entryFromActivity(self, anActivity):
         return anActivity.sourceName()
 
+
+class RawDescriptionColumnDefinition():
+    
+    def name(self):
+        return 'RawDescription'
+    
+    def entryFromActivity(self, anActivity):
+        return anActivity.rawDescription()
