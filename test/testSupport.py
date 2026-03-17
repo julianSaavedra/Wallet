@@ -1,4 +1,5 @@
 from collections import deque
+from datetime import date
 
 from src.model import FinancialActivity, Dollars
 
@@ -38,8 +39,11 @@ class LoadedActivitySource():
     def addExpenseWithDescription(self, aDescription):
         self.addExpenseWithDescriptionAndDollarsAmount(aDescription,1)
 
+    def activityDate(self):
+        return date(2026,3,17)
+
     def addExpenseWithAmount(self, anAmount):
-        newExpense = FinancialActivity.expenseWithDescriptionAndTotal('Description', 'RawDescription', 'NoCategory', anAmount, self)
+        newExpense = FinancialActivity.expenseWithDescriptionAndTotal('Description', 'RawDescription', 'NoCategory', anAmount, self, self.activityDate())
         self.addExpense(newExpense)
 
     def addExpenseWithCategoryAndDollarsAmount(self, category, dollarsAmount):
@@ -47,26 +51,26 @@ class LoadedActivitySource():
         return self.addExpenseWithCategoryAndTotal(category, total)
 
     def addExpenseWithCategoryAndTotal(self, category, total):
-        newExpense = FinancialActivity.expenseWithDescriptionAndTotal('Description', 'RawDescription', category, total, self)
+        newExpense = FinancialActivity.expenseWithDescriptionAndTotal('Description', 'RawDescription', category, total, self, self.activityDate())
         self.addExpense(newExpense)
 
     def addExpenseWithDescriptionCategoryAndDollarsAmount(self, aDescription, aCategory, dollarsAmount):
-        newExpense = FinancialActivity.expenseWithDescriptionAndTotal(aDescription, aDescription, aCategory, Dollars.withAmount(dollarsAmount), self)
+        newExpense = FinancialActivity.expenseWithDescriptionAndTotal(aDescription, aDescription, aCategory, Dollars.withAmount(dollarsAmount), self, self.activityDate())
         self.addExpense(newExpense)
 
     def addExpenseWithDescriptionAndDollarsAmount(self, aDescription, dollarsAmount):
        self.addExpenseWithDescriptionCategoryAndDollarsAmount(aDescription, 'NoCategory', dollarsAmount)
 
     def addIncomeWithAmount(self, anAmount):
-        newIncome = FinancialActivity.incomeWithDescriptionAndTotal('Description', 'RawDescription', 'NoCategory', anAmount, self)
+        newIncome = FinancialActivity.incomeWithDescriptionAndTotal('Description', 'RawDescription', 'NoCategory', anAmount, self, self.activityDate())
         self.addIncome(newIncome)
 
     def addIncomeWithDescriptionAndDollarsAmount(self, aDescription, dollarsAmount):
-        newIncome = FinancialActivity.incomeWithDescriptionAndTotal(aDescription, aDescription, 'NoCategory', Dollars.withAmount(dollarsAmount), self)
+        newIncome = FinancialActivity.incomeWithDescriptionAndTotal(aDescription, aDescription, 'NoCategory', Dollars.withAmount(dollarsAmount), self, self.activityDate())
         self.addIncome(newIncome)
     
     def addIncomeWithDescriptionAndRawDescription(self, aDescription, aRawDescription):
-        newIncome = FinancialActivity.incomeWithDescriptionAndTotal(aDescription, aRawDescription, 'NoCategory', Dollars.zero(), self)
+        newIncome = FinancialActivity.incomeWithDescriptionAndTotal(aDescription, aRawDescription, 'NoCategory', Dollars.zero(), self, self.activityDate())
         self.addIncome(newIncome)
 
     def addActivity(self, anActivity):

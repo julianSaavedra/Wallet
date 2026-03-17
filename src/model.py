@@ -1,3 +1,6 @@
+from datetime import date
+
+
 class Dollars():
     @classmethod
     def zero(cls):
@@ -115,20 +118,21 @@ class FinancialActivityFileSource():
     def _activityFromRecord(self, header, lineRecord):
         rawDescription = self._amountColumnSpec.descriptionFromLine(header, lineRecord)
         rawRecord = FileRawActivityRecord.withDescription(rawDescription)
+        activityDate = self._amountColumnSpec.dateFromLine(header, lineRecord)
         enrichmentDefinition = self._activityEnrichmentSpec.enrichmentDefinitionForActivity(rawRecord)
         expenseAmount = self._amountColumnSpec.expenseAmountFromLine(header, lineRecord)
         if expenseAmount:
-            activity = self._newExpense(rawDescription, enrichmentDefinition, expenseAmount)
+            activity = self._newExpense(rawDescription, enrichmentDefinition, expenseAmount, activityDate)
         incomeAmount = self._amountColumnSpec.incomeAmountFromLine(header, lineRecord)
         if incomeAmount:
-            activity = self._newIncome(rawDescription, enrichmentDefinition, incomeAmount)
+            activity = self._newIncome(rawDescription, enrichmentDefinition, incomeAmount, activityDate)
         return activity
 
-    def _newIncome(self, rawDescription, enrichmentDefinition, incomeAmount):
-        return FinancialActivity.incomeWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), rawDescription, enrichmentDefinition.bucket(), Dollars.withAmount(incomeAmount), self)
+    def _newIncome(self, rawDescription, enrichmentDefinition, incomeAmount, activityDate):
+        return FinancialActivity.incomeWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), rawDescription, enrichmentDefinition.bucket(), Dollars.withAmount(incomeAmount), self, activityDate)
 
-    def _newExpense(self, rawDescription, enrichmentDefinition, expenseAmount):
-        return FinancialActivity.expenseWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), rawDescription, enrichmentDefinition.bucket(), Dollars.withAmount(expenseAmount), self)
+    def _newExpense(self, rawDescription, enrichmentDefinition, expenseAmount, activityDate):
+        return FinancialActivity.expenseWithDescriptionAndTotal(enrichmentDefinition.descriptionOverride(), rawDescription, enrichmentDefinition.bucket(), Dollars.withAmount(expenseAmount), self, activityDate)
 
 
 class FileRawActivityRecord():
@@ -167,24 +171,25 @@ class CompositeFinancialActivitiesSource():
 class FinancialActivity():
        
     @classmethod
-    def expenseWithDescriptionAndTotal(cls, aDescription, aRawDescription, aCategory, total, source):
-        return cls.withDescriptionAndTotal(aDescription, aRawDescription, aCategory,'Expense', total, source)
+    def expenseWithDescriptionAndTotal(cls, aDescription, aRawDescription, aCategory, total, source, aDate):
+        return cls.withDescriptionAndTotal(aDescription, aRawDescription, aCategory,'Expense', total, source, aDate)
    
     @classmethod
-    def incomeWithDescriptionAndTotal(cls, aDescription, aRawDescription, aCategory, total, source):
-        return cls.withDescriptionAndTotal(aDescription, aRawDescription, aCategory, 'Income', total, source)
+    def incomeWithDescriptionAndTotal(cls, aDescription, aRawDescription, aCategory, total, source, aDate):
+        return cls.withDescriptionAndTotal(aDescription, aRawDescription, aCategory, 'Income', total, source, aDate)
     
     @classmethod
-    def withDescriptionAndTotal(cls,description, rawDescription, aCategory , type, total, source):
-        return cls(description, rawDescription, aCategory, type, total, source)
+    def withDescriptionAndTotal(cls,description, rawDescription, aCategory , type, total, source, aDate):
+        return cls(description, rawDescription, aCategory, type, total, source, aDate)
 
-    def __init__(self, description, rawDescription, aCategory, type, total, source):
+    def __init__(self, description, rawDescription, aCategory, type, total, source, aDate):
         self._description = description
         self._rawDescription = rawDescription 
         self._category = aCategory
         self._total = total
         self._type = type
         self._source = source
+        self._date = aDate
     
     def total(self):
         return self._total
@@ -204,25 +209,70 @@ class FinancialActivity():
     def rawDescription(self):
         return self._rawDescription
     
+    def date(self):
+        return self._date
+
+class FileRecordSpec():
+
+    @classmethod
+    def withSpecs(cls, descriptionColumn, amountSpec, dateSpec):
+        return cls(descriptionColumn, amountSpec, dateSpec)
+    
+    def __init__(self, descriptionColumn, amountSpec, dateSpec):
+        self._descriptionColumn = descriptionColumn
+        self._amountSpec = amountSpec
+        self._dateSpec = dateSpec
+    
+    def descriptionFromLine(self, header, lineRecord):
+        descriptionIndex = header.index(self._descriptionColumn)
+        return lineRecord[descriptionIndex]
+    
+    def dateFromLine(self, header, lineRecord):
+        return self._dateSpec.dateFromLine(header, lineRecord)
+
+    def expenseAmountFromLine(self, header, lineRecord):
+        return self._amountSpec.expenseAmountFromLine(header, lineRecord)
+
+    def incomeAmountFromLine(self, header, lineRecord):
+        return self._amountSpec.incomeAmountFromLine(header, lineRecord)
+
+class DateFileRecordSpec():
+
+    @classmethod
+    def withSeparatorAndSequence(cls, column, separator, sequence):
+        return cls( column, separator, sequence)
+    
+    def __init__(self, column, separator, sequence):
+        self._column = column
+        self._separator = separator
+        self._sequence = sequence
+    
+    def dateFromLine(self, header, lineRecord):
+        rawDate = self._dateStringFromLine(header, lineRecord)
+        #NOT YET AVAILABLE - date.strptime(rawDate, '%m-%d-%y')
+        dateParts = rawDate.split(self._separator)
+        year = dateParts[self._sequence.index('Year')]
+        month = dateParts[self._sequence.index('Month')]
+        day = dateParts[self._sequence.index('Day')]
+        return date(int(year), int(month), int(day))
+
+    def _dateStringFromLine(self, header, lineRecord):
+        dateIndex = header.index(self._column)
+        return lineRecord[dateIndex]
 
 class SingleAmountColumnFileRecordSpec():
     
     @classmethod
-    def forSpecificColumn(cls, descriptionColumn, amountColumn):
-        return cls(descriptionColumn, amountColumn)
+    def forSpecificColumn(cls, amountColumn):
+        return cls(amountColumn)
     
-    def __init__(self, descriptionColumn, amountColumn):
-        self._descriptionColumn = descriptionColumn
+    def __init__(self, amountColumn):
         self._amountColumn = amountColumn
     
     def expenseAmountFromLine(self, header, lineRecord):
         amount = self._amountAtColumn(header, lineRecord, self._amountColumn)
         return amount if amount > 0 else 0
     
-    def descriptionFromLine(self, header, lineRecord):
-        descriptionIndex = header.index(self._descriptionColumn)
-        return lineRecord[descriptionIndex]
-
     def incomeAmountFromLine(self, header, lineRecord):
         amount = self._amountAtColumn(header, lineRecord, self._amountColumn)
         return abs(amount) if amount < 0 else 0
@@ -236,20 +286,15 @@ class SingleAmountColumnFileRecordSpec():
 class TwoAmountColumnsFileRecordSpec():
 
     @classmethod
-    def forColumns(cls, descriptionColumn, expenseColumn, incomeColumn):
-        return cls(descriptionColumn, expenseColumn, incomeColumn)
+    def forColumns(cls, expenseColumn, incomeColumn):
+        return cls(expenseColumn, incomeColumn)
 
-    def __init__(self, descriptionColumn, expenseColumn, incomeColumn):
-        self._descriptionColumn = descriptionColumn
+    def __init__(self, expenseColumn, incomeColumn):
         self._expenseColumn = expenseColumn
         self._incomeColumn = incomeColumn
     
     def expenseAmountFromLine(self, header, lineRecord):
         return self._amountAtColumn(header, lineRecord, self._expenseColumn)
-
-    def descriptionFromLine(self, header, lineRecord):
-        descriptionIndex = header.index(self._descriptionColumn)
-        return lineRecord[descriptionIndex]
 
     def incomeAmountFromLine(self, header, lineRecord):
         return self._amountAtColumn(header, lineRecord, self._incomeColumn)
