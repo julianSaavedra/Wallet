@@ -72,6 +72,10 @@ class LoadedActivitySource():
     def addIncomeWithDescriptionAndRawDescription(self, aDescription, aRawDescription):
         newIncome = FinancialActivity.incomeWithDescriptionAndTotal(aDescription, aRawDescription, 'NoCategory', Dollars.zero(), self, self.activityDate())
         self.addIncome(newIncome)
+    
+    def addIncomeWithDescriptionAndDate(self, aDescription, aDate):
+        newIncome = FinancialActivity.incomeWithDescriptionAndTotal(aDescription, 'RawDescription', 'NoCategory', Dollars.zero(), self, aDate)
+        self.addIncome(newIncome)
 
     def addActivity(self, anActivity):
         if anActivity.isExpense(): self.addExpense(anActivity)

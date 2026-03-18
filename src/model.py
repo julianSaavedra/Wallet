@@ -424,3 +424,12 @@ class RawDescriptionColumnDefinition():
     
     def entryFromActivity(self, anActivity):
         return anActivity.rawDescription()
+
+
+class DateColumnDefinition():
+
+    def name(self):
+        return 'Date'
+    
+    def entryFromActivity(self, anActivity):
+        return anActivity.date().isoformat()

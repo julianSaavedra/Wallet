@@ -6,7 +6,7 @@ from src.model import FinancialActivityFileLineParser, SingleAmountColumnFileRec
 from src.model_activityEnrichment import ActivityEnrichmentSpecBuilder
 from src.model import FinancialActivityStatementExporter, DescriptionColumnDefinition, AmountColumnDefinition
 from src.model import ActivityTypeColumnDefinition, CurrencyColumnDefinition, CategoryColumnDefinition, SourceNameColumnDefinition
-from src.model import RawDescriptionColumnDefinition
+from src.model import RawDescriptionColumnDefinition, DateColumnDefinition
 from src.model import CompositeFinancialActivitiesSource
 from src.model import DateFileRecordSpec, FileRecordSpec
 from test.testSupport import LoadedActivitySource, TestFile
@@ -844,6 +844,18 @@ class FinancialActivityStatementExporterTest(TestCase):
         self.assertExportedLines(exportedFile, [
             "Description,RawDescription",
             'Salary-Work,SalaryABCWORKCo'])
+
+    def testExportIncludesColumnDateShowingYearMonyhAndDaySeparatedByDashesForAnIncomeActivity(self):
+        aSource = LoadedActivitySource()
+        aSource.addIncomeWithDescriptionAndDate('Salary-Work', date(2026,3,18))
+        statement = FinancialActivityStatement.fromSingleSource(aSource)
+        columnDefinitions = [DescriptionColumnDefinition(), DateColumnDefinition()]
+        exporter = FinancialActivityStatementExporter.withColumnDefinitions(columnDefinitions)
+        exportedFile = TestFile()
+        exporter.exportStatementIntoFile(statement, exportedFile)
+        self.assertExportedLines(exportedFile, [
+            "Description,Date",
+            'Salary-Work,2026-03-18'])
     
     def assertEmpty(self, aCollection):
         self.assertEqual(len(aCollection),0)
